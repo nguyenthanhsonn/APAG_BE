@@ -14,6 +14,18 @@ export type AdminUserResponse = {
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  classId: string | null;
+  facultyId: string | null;
+  class: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  faculty: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
   managedClasses: Array<{
     id: string;
     code: string;

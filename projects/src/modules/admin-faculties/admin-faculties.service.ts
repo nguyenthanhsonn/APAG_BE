@@ -3,10 +3,11 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { UserRole, type PaginatedResult } from '../../common/shared';
-import { Prisma } from '../../generated/prisma/client';
+import { FormStatus, Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { GetMajorsQueryDto } from '../admin-majors/dto/get-majors-query.dto';
 import { mapToAdminMajorResponse } from '../admin-majors/mappers/admin-major.mapper';
@@ -22,9 +23,17 @@ import {
   normalizeFacultyCode,
 } from './mappers/admin-faculty.mapper';
 import type { AdminFacultyResponse } from './types/admin-faculty.types';
+import type {
+  FacultyClassStatsItem,
+  FacultyClassStatsResponse,
+  FacultyCouncilReviewItem,
+  FacultyCouncilReviewResponse,
+} from './types/faculty-class-stats.types';
 
 @Injectable()
 export class AdminFacultiesService {
+  private readonly logger = new Logger(AdminFacultiesService.name);
+
   constructor(
     private readonly repository: AdminFacultiesRepository,
     private readonly prisma: PrismaService,
@@ -260,6 +269,286 @@ export class AdminFacultiesService {
     }
 
     throw new ConflictException('Mã khoa đã tồn tại');
+  }
+
+  /**
+   * Thống kê danh sách lớp thuộc Khoa cho trang Faculty Dashboard (0 N+1 Query).
+   */
+  async getClassStatsForFaculty(
+    facultyId: string,
+    semesterId?: string,
+  ): Promise<FacultyClassStatsResponse> {
+    let targetSemesterId = semesterId;
+    if (!targetSemesterId) {
+      const activeSemester = await this.prisma.semester.findFirst({
+        where: { isActive: true },
+        select: { id: true },
+      });
+      targetSemesterId = activeSemester?.id;
+    }
+
+    const classes = await this.prisma.class.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        major: { facultyId },
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        classLeaderAssignments: {
+          select: {
+            user: { select: { fullName: true, username: true } },
+          },
+          take: 1,
+        },
+        _count: {
+          select: {
+            classStudents: { where: { deletedAt: null } },
+          },
+        },
+        evaluationForms: targetSemesterId
+          ? {
+              where: { semesterId: targetSemesterId },
+              select: {
+                status: true,
+                updatedAt: true,
+                classReviewedAt: true,
+              },
+            }
+          : false,
+      },
+      orderBy: [{ code: 'asc' }],
+    });
+
+    const items: FacultyClassStatsItem[] = classes.map((cls) => {
+      const totalStudents = cls._count.classStudents;
+      const leaderUser = cls.classLeaderAssignments[0]?.user;
+      const leaderName = leaderUser?.fullName || leaderUser?.username || '—';
+
+      const forms = cls.evaluationForms || [];
+      const submittedCount = forms.filter((f) => f.status !== FormStatus.draft).length;
+      const pendingCount = forms.filter((f) => f.status === FormStatus.class_approved).length;
+      const facultyApprovedCount = forms.filter(
+        (f) => f.status === FormStatus.faculty_approved || f.status === FormStatus.finalized,
+      ).length;
+
+      let status: FacultyClassStatsItem['status'] = 'IN_PROGRESS';
+      let statusLabel = 'Đang làm việc cấp Lớp';
+
+      if (pendingCount > 0) {
+        status = 'PENDING_FACULTY';
+        statusLabel = 'Chờ Khoa gửi PĐT';
+      } else if (totalStudents > 0 && facultyApprovedCount === totalStudents) {
+        status = 'FACULTY_APPROVED';
+        statusLabel = 'Đã gửi PĐT';
+      }
+
+      let transferredDate = '-';
+      if (status === 'FACULTY_APPROVED' || status === 'PENDING_FACULTY') {
+        const lastUpdated = forms
+          .map((f) => f.classReviewedAt || f.updatedAt)
+          .filter(Boolean)
+          .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
+
+        if (lastUpdated) {
+          const d = new Date(lastUpdated);
+          transferredDate = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+        }
+      }
+
+      return {
+        id: cls.id,
+        className: cls.name || cls.code,
+        classCode: cls.code,
+        leader: leaderName,
+        totalStudents,
+        totalStudentsLabel: `${totalStudents} SV`,
+        submittedCount,
+        approvedCount: facultyApprovedCount,
+        submittedFraction: `${submittedCount}/${totalStudents}`,
+        status,
+        statusLabel,
+        transferredDate,
+        canSubmitToTrainingDepartment: status === 'PENDING_FACULTY',
+      };
+    });
+
+    return {
+      totalClasses: items.length,
+      items,
+    };
+  }
+
+  /**
+   * Lấy danh sách đánh giá của sinh viên trong một Lớp cho Hội đồng Khoa duyệt (Biên bản Hội đồng Khoa)
+   */
+  async getCouncilReviewForClass(
+    facultyId: string,
+    classId: string,
+    semesterId?: string,
+  ): Promise<FacultyCouncilReviewResponse> {
+    const classRecord = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        major: { select: { facultyId: true } },
+      },
+    });
+
+    if (!classRecord || classRecord.major.facultyId !== facultyId) {
+      throw new ForbiddenException('Lớp học không thuộc khoa được gán');
+    }
+
+    const classStudents = await this.prisma.classStudent.findMany({
+      where: { classId },
+      select: {
+        studentId: true,
+        studentCode: true,
+        student: {
+          select: {
+            id: true,
+            fullName: true,
+            username: true,
+            dateOfBirth: true,
+          },
+        },
+      },
+      orderBy: { studentCode: 'asc' },
+    });
+
+    const formWhere: Prisma.EvaluationFormWhereInput = { classId };
+    if (semesterId) {
+      formWhere.semesterId = semesterId;
+    } else {
+      const activeSemester = await this.prisma.semester.findFirst({
+        where: { isActive: true },
+        select: { id: true },
+      });
+      if (activeSemester) {
+        formWhere.semesterId = activeSemester.id;
+      }
+    }
+
+    let evaluationForms = await this.prisma.evaluationForm.findMany({
+      where: formWhere,
+      select: {
+        id: true,
+        studentId: true,
+        status: true,
+        classScore: true,
+        finalScore: true,
+        studentScore: true,
+        rank: true,
+        note: true,
+        student: {
+          select: {
+            id: true,
+            fullName: true,
+            username: true,
+            dateOfBirth: true,
+          },
+        },
+      },
+    });
+
+    if (evaluationForms.length === 0 && !semesterId) {
+      evaluationForms = await this.prisma.evaluationForm.findMany({
+        where: { classId },
+        select: {
+          id: true,
+          studentId: true,
+          status: true,
+          classScore: true,
+          finalScore: true,
+          studentScore: true,
+          rank: true,
+          note: true,
+          student: {
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+              dateOfBirth: true,
+            },
+          },
+        },
+      });
+    }
+
+    const evalMap = new Map(evaluationForms.map((e) => [e.studentId, e]));
+
+    this.logger.log(
+      `[getCouncilReviewForClass] facultyId=${facultyId}, classId=${classId} (${classRecord.name || classRecord.code}) -> classStudents=${classStudents.length}, evaluationForms=${evaluationForms.length}`,
+    );
+
+    type StudentInfo = {
+      studentId: string;
+      studentCode: string;
+      fullName: string;
+      dateOfBirth: Date | null;
+      form?: (typeof evaluationForms)[0];
+    };
+
+    const studentMap = new Map<string, StudentInfo>();
+
+    for (const cs of classStudents) {
+      studentMap.set(cs.studentId, {
+        studentId: cs.studentId,
+        studentCode: cs.studentCode || cs.student.username || '—',
+        fullName: cs.student.fullName || '—',
+        dateOfBirth: cs.student.dateOfBirth,
+        form: evalMap.get(cs.studentId),
+      });
+    }
+
+    for (const form of evaluationForms) {
+      const existing = studentMap.get(form.studentId);
+      if (existing) {
+        existing.form = form;
+      } else {
+        studentMap.set(form.studentId, {
+          studentId: form.studentId,
+          studentCode: form.student?.username || '—',
+          fullName: form.student?.fullName || '—',
+          dateOfBirth: form.student?.dateOfBirth ?? null,
+          form,
+        });
+      }
+    }
+
+    const allStudents = Array.from(studentMap.values());
+
+    const items: FacultyCouncilReviewItem[] = allStudents.map((item, index) => {
+      const form = item.form;
+      const dob = item.dateOfBirth
+        ? new Date(item.dateOfBirth).toLocaleDateString('vi-VN')
+        : '—';
+
+      return {
+        stt: index + 1,
+        studentId: item.studentId,
+        studentCode: item.studentCode,
+        fullName: item.fullName,
+        dateOfBirth: dob,
+        evaluationId: form?.id ?? null,
+        status: form?.status ?? 'draft',
+        classScore: form?.classScore ?? form?.studentScore ?? null,
+        facultyScore: form?.finalScore ?? form?.classScore ?? null,
+        classification: form?.rank ?? '—',
+        note: form?.note ?? '',
+      };
+    });
+
+    return {
+      classId: classRecord.id,
+      className: classRecord.name || classRecord.code,
+      totalStudents: items.length,
+      items,
+    };
   }
 
   private handleKnownFacultyError(error: unknown): void {

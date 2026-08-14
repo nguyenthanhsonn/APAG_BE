@@ -127,6 +127,10 @@ export class AdminUsersService {
           await assertClassExists(tx, dto.classId);
         }
 
+        if (dto.facultyId) {
+          await assertFacultyExists(tx, dto.facultyId);
+        }
+
         const created = await tx.user.create({
           data: {
             username: dto.username,
@@ -142,6 +146,13 @@ export class AdminUsersService {
 
         if (dto.classId) {
           await replaceManagedClassAssignment(tx, created.id, dto.role, dto.classId);
+        }
+
+        if (dto.facultyId) {
+          await replaceManagedFacultyAssignment(tx, created.id, dto.role, dto.facultyId);
+        }
+
+        if (dto.classId || dto.facultyId) {
           return tx.user.findUniqueOrThrow({
             where: { id: created.id },
             select: adminUserSelect,
@@ -203,6 +214,10 @@ export class AdminUsersService {
           await assertClassExists(tx, dto.classId);
         }
 
+        if (dto.facultyId) {
+          await assertFacultyExists(tx, dto.facultyId);
+        }
+
         const updated = await tx.user.update({
           where: { id },
           data: {
@@ -221,16 +236,31 @@ export class AdminUsersService {
           select: adminUserSelect,
         });
 
+        const effectiveRole = (dto.role ?? updated.role) as SharedUserRole;
+
         if (dto.role !== undefined && !isClassManagedRole(dto.role)) {
           await clearManagedClassAssignments(tx, id);
+        }
+
+        if (dto.role !== undefined && !isFacultyManagedRole(dto.role)) {
+          await clearManagedFacultyAssignments(tx, id);
         }
 
         if (dto.classId) {
           await replaceManagedClassAssignment(
             tx,
             id,
-            dto.role ?? (updated.role as SharedUserRole),
+            effectiveRole,
             dto.classId,
+          );
+        }
+
+        if (dto.facultyId) {
+          await replaceManagedFacultyAssignment(
+            tx,
+            id,
+            effectiveRole,
+            dto.facultyId,
           );
         }
 
@@ -371,10 +401,6 @@ export class AdminUsersService {
   private async sendCreatedManagedUserEmail(
     dto: CreateAdminUserDto,
   ): Promise<{ sent: boolean; error: string | null }> {
-    if (![SharedUserRole.ClassLeader, SharedUserRole.Advisor].includes(dto.role)) {
-      return { sent: false, error: null };
-    }
-
     if (!this.accountMailService.isConfigured()) {
       return {
         sent: false,
@@ -389,8 +415,7 @@ export class AdminUsersService {
         fullName: dto.fullName.trim(),
         username: dto.username,
         password: dto.password,
-        roleLabel:
-          dto.role === SharedUserRole.ClassLeader ? 'Lớp trưởng' : 'CVHT',
+        roleLabel: getRoleLabel(dto.role),
       });
 
       return { sent: true, error: null };
@@ -501,6 +526,56 @@ async function replaceManagedClassAssignment(
   });
 }
 
+type ManagedFacultyAssignmentTx = Pick<
+  Prisma.TransactionClient,
+  'faculty' | 'facultyAssignment'
+>;
+
+async function assertFacultyExists(
+  tx: ManagedFacultyAssignmentTx,
+  facultyId: string,
+): Promise<void> {
+  const facultyRecord = await tx.faculty.findFirst({
+    where: { id: facultyId, deletedAt: null },
+    select: { id: true },
+  });
+
+  if (!facultyRecord) {
+    throw new NotFoundException('Không tìm thấy khoa phụ trách');
+  }
+}
+
+function isFacultyManagedRole(role: SharedUserRole): boolean {
+  return role === SharedUserRole.Faculty;
+}
+
+async function clearManagedFacultyAssignments(
+  tx: ManagedFacultyAssignmentTx,
+  userId: string,
+): Promise<void> {
+  await tx.facultyAssignment.deleteMany({ where: { userId } });
+}
+
+async function replaceManagedFacultyAssignment(
+  tx: ManagedFacultyAssignmentTx,
+  userId: string,
+  role: SharedUserRole,
+  facultyId: string,
+): Promise<void> {
+  if (!isFacultyManagedRole(role)) {
+    throw new BadRequestException(
+      'Chỉ tài khoản đại diện khoa mới được gán khoa phụ trách',
+    );
+  }
+
+  await clearManagedFacultyAssignments(tx, userId);
+
+  await tx.facultyAssignment.create({
+    data: { userId, facultyId },
+    select: { id: true },
+  });
+}
+
 function toPrismaManagedUserRole(role: SharedUserRole): PrismaUserRole {
   if (role === SharedUserRole.Admin) {
     return PrismaUserRole.admin;
@@ -527,11 +602,31 @@ function toPrismaManagedUserRole(role: SharedUserRole): PrismaUserRole {
   );
 }
 
+function getRoleLabel(role: SharedUserRole): string {
+  switch (role) {
+    case SharedUserRole.ClassLeader:
+      return 'Lớp trưởng';
+    case SharedUserRole.Advisor:
+      return 'Cố vấn học tập';
+    case SharedUserRole.Faculty:
+      return 'Tài khoản Khoa';
+    case SharedUserRole.TrainingDepartment:
+      return 'Phòng Đào tạo';
+    case SharedUserRole.Admin:
+      return 'Quản trị viên';
+    default:
+      return 'Nhân sự';
+  }
+}
+
 function mapToAdminUserResponse(user: AdminUserRecord): AdminUserResponse {
   const classAssignments =
     user.role === PrismaUserRole.advisor
       ? user.advisorAssignments
       : user.classLeaderAssignments;
+
+  const primaryClass = classAssignments[0]?.class ?? null;
+  const faculty = user.facultyAssignment?.faculty ?? null;
 
   return {
     id: user.id,
@@ -546,6 +641,22 @@ function mapToAdminUserResponse(user: AdminUserRecord): AdminUserResponse {
     deletedAt: user.deletedAt,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+    classId: primaryClass?.id ?? null,
+    facultyId: faculty?.id ?? null,
+    class: primaryClass
+      ? {
+          id: primaryClass.id,
+          code: primaryClass.code,
+          name: primaryClass.name,
+        }
+      : null,
+    faculty: faculty
+      ? {
+          id: faculty.id,
+          code: faculty.code,
+          name: faculty.name,
+        }
+      : null,
     managedClasses: classAssignments.map((assignment) => ({
       id: assignment.class.id,
       code: assignment.class.code,

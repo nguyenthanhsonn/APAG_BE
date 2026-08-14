@@ -1280,6 +1280,20 @@ export class AdminClassesService {
       return;
     }
 
+    if (role === SharedUserRole.Faculty) {
+      const assignment = await this.prisma.facultyAssignment.findUnique({
+        where: { userId },
+        select: { facultyId: true },
+      });
+
+      if (!assignment || assignment.facultyId !== classRecord.major.facultyId) {
+        throw new ForbiddenException(
+          'Bạn không được phân công quản lý khoa của lớp này',
+        );
+      }
+      return;
+    }
+
     if (![SharedUserRole.ClassLeader, SharedUserRole.Advisor].includes(role)) {
       throw new ForbiddenException('Bạn không có quyền quản lý lớp học này');
     }

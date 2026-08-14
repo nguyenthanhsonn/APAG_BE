@@ -8,8 +8,9 @@ import {
 import ExcelJS from 'exceljs';
 import { randomUUID } from 'node:crypto';
 import { read, utils } from 'xlsx';
-import type { PaginatedResult } from '../../common/shared';
+import { UserRole, type PaginatedResult } from '../../common/shared';
 import { Prisma } from '../../generated/prisma/client';
+import { PrismaService } from '../../database/prisma.service';
 import { AdminClassCatalogRepository } from './admin-class-catalog.repository';
 import { CreateClassDto } from './dto/create-class.dto';
 import { GetClassesQueryDto } from './dto/get-classes-query.dto';
@@ -91,7 +92,10 @@ export class AdminClassCatalogService {
     CachedClassImportPlan
   >();
 
-  constructor(private readonly repository: AdminClassCatalogRepository) {}
+  constructor(
+    private readonly repository: AdminClassCatalogRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /** Lấy danh sách lớp có phân trang, tìm kiếm và lọc theo ngành/khoa. Mặc định chỉ lấy lớp chưa xóa mềm. */
   async findAll(
@@ -146,12 +150,30 @@ export class AdminClassCatalogService {
 
   async findOneForClassLeader(
     userId: string,
+    role: UserRole,
     id: string,
   ): Promise<AdminClassDetailResponse> {
     const classRecord = await this.repository.findDetailById(id);
 
     if (!classRecord || classRecord.deletedAt) {
       throw new NotFoundException('Không tìm thấy lớp học');
+    }
+
+    if (role === UserRole.Admin) {
+      return mapToAdminClassDetailResponse(classRecord);
+    }
+
+    if (role === UserRole.Faculty) {
+      const assignment = await this.prisma.facultyAssignment.findUnique({
+        where: { userId },
+        select: { facultyId: true },
+      });
+
+      if (!assignment || assignment.facultyId !== classRecord.major.faculty.id) {
+        throw new ForbiddenException('Bạn không được quản lý khoa của lớp này');
+      }
+
+      return mapToAdminClassDetailResponse(classRecord);
     }
 
     const isAssigned = [

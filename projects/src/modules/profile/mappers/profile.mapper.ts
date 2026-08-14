@@ -71,6 +71,14 @@ export function mapToProfileResponse(user: ProfileRecord) {
         },
       };
     }),
+    managedFaculty: user.facultyAssignment
+      ? {
+          id: user.facultyAssignment.faculty.id,
+          code: user.facultyAssignment.faculty.code,
+          name: user.facultyAssignment.faculty.name,
+          assignedAt: user.facultyAssignment.assignedAt,
+        }
+      : null,
   };
 }
 

@@ -54,6 +54,35 @@ export class FacultiesController {
   ) {
     return this.adminFacultiesService.findMajorsForViewer(userId, role, id, query);
   }
+
+  @ApiOperation({
+    summary: 'Thống kê danh sách lớp thuộc khoa cho Dashboard Khoa',
+    description:
+      'Endpoint tổng hợp danh sách lớp, sĩ số, số phiếu đã nộp, trạng thái gửi PĐT và ngày chuyển cho Dashboard Khoa.',
+  })
+  @ApiResponse({ status: 200, description: 'Thao tác thành công.' })
+  @Get(':id/class-stats')
+  getClassStats(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('semesterId') semesterId?: string,
+  ) {
+    return this.adminFacultiesService.getClassStatsForFaculty(id, semesterId);
+  }
+
+  @ApiOperation({
+    summary: 'Danh sách đánh giá của sinh viên trong lớp cho Biên bản Hội đồng Khoa',
+    description:
+      'Endpoint trả về danh sách sinh viên trong lớp kèm điểm ĐRL Lớp ĐG, ĐRL HĐ Khoa ĐG, Xếp loại và Ghi chú.',
+  })
+  @ApiResponse({ status: 200, description: 'Thao tác thành công.' })
+  @Get(':id/classes/:classId/council-review')
+  getCouncilReview(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('classId', ParseUUIDPipe) classId: string,
+    @Query('semesterId') semesterId?: string,
+  ) {
+    return this.adminFacultiesService.getCouncilReviewForClass(id, classId, semesterId);
+  }
 }
 
 @ApiTags('Admin Faculties')

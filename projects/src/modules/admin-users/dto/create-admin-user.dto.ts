@@ -70,4 +70,9 @@ export class CreateAdminUserDto {
   @IsOptional()
   @IsUUID('4')
   classId?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  facultyId?: string;
 }
+

@@ -79,4 +79,9 @@ export class UpdateAdminUserDto {
   @IsOptional()
   @IsUUID('4')
   classId?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  facultyId?: string;
 }
+

@@ -41,7 +41,7 @@ import {
 
 @Controller('admin/classes')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.Admin, UserRole.ClassLeader, UserRole.Advisor)
+@Roles(UserRole.Admin, UserRole.ClassLeader, UserRole.Advisor, UserRole.Faculty)
 export class AdminClassesController {
   constructor(
     private readonly adminClassesService: AdminClassesService,
@@ -170,7 +170,7 @@ export class AdminClassesController {
 
 @Controller('classes')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ClassLeader, UserRole.Advisor)
+@Roles(UserRole.ClassLeader, UserRole.Advisor, UserRole.Faculty, UserRole.Admin)
 export class ClassLeaderClassesController {
   constructor(
     private readonly adminClassesService: AdminClassesService,
@@ -180,9 +180,10 @@ export class ClassLeaderClassesController {
   @Get(':id')
   findOneManagedClass(
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.adminClassCatalogService.findOneForClassLeader(userId, id);
+    return this.adminClassCatalogService.findOneForClassLeader(userId, role, id);
   }
 
   @Get(':classId/students')

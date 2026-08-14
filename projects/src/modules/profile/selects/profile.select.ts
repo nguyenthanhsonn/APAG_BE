@@ -110,6 +110,18 @@ export const profileSelect = {
       assignedAt: 'desc',
     },
   },
+  facultyAssignment: {
+    select: {
+      assignedAt: true,
+      faculty: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
+        },
+      },
+    },
+  },
 } satisfies Prisma.UserSelect;
 
 export type ProfileRecord = Prisma.UserGetPayload<{
