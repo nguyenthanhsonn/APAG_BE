@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import { resolveDatabaseUrl } from '../config/database-url.helper';
 import { PrismaClient } from '../generated/prisma/client';
 
 @Injectable()
@@ -16,7 +17,14 @@ export class PrismaService
   private readonly pool: Pool;
 
   constructor(configService: ConfigService) {
-    const connectionString = configService.getOrThrow<string>('DATABASE_URL');
+    const connectionString = resolveDatabaseUrl(configService);
+
+    if (!connectionString) {
+      throw new Error(
+        'Missing database config: set DATABASE_URL or DB_HOST, DB_NAME, DB_PASS',
+      );
+    }
+
     const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);
     super({ adapter });
