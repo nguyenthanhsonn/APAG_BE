@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    container_name: csmts-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-apag}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-2805}
+    ports:
+      - "${DB_PUBLISHED_PORT:-15432}:5432"
+    volumes:
+      - csmts-postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-apag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: csmts-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASS:-2805}@db:5432/${DB_NAME:-apag}?schema=public
+      DIRECT_URL: postgresql://${DB_USER:-postgres}:${DB_PASS:-2805}@db:5432/${DB_NAME:-apag}?schema=public
+      PRISMA_CONNECT_ON_INIT: ${PRISMA_CONNECT_ON_INIT:-true}
+      BACKEND_PORT: ${BACKEND_PORT:-5050}
+      BACKEND_HOST: 0.0.0.0
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      STUDENT_PORTAL_URL: ${STUDENT_PORTAL_URL:-http://localhost:3000/login}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      DUMMY_PASSWORD_HASH: ${DUMMY_PASSWORD_HASH}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-CSMTS}
+    ports:
+      - "${BACKEND_PORT:-5050}:5050"
+
+volumes:
+  csmts-postgres-data:

@@ -5,6 +5,7 @@ import {
   SemesterNo,
   UserRole,
 } from '../../src/generated/prisma/client';
+import { resolveDatabaseUrl } from '../../src/config/database-url.helper';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 import * as path from 'node:path';
@@ -12,9 +13,11 @@ import * as path from 'node:path';
 // Nạp biến môi trường từ projects/.env để seed dùng đúng DATABASE_URL hiện tại.
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = resolveDatabaseUrl(process.env);
 if (!databaseUrl) {
-  console.error('DATABASE_URL chưa được cấu hình trong file .env');
+  console.error(
+    'Chưa cấu hình database. Hãy set DATABASE_URL hoặc DB_HOST, DB_NAME, DB_PASS trong file .env',
+  );
   process.exit(1);
 }
 
