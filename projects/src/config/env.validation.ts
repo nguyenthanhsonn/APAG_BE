@@ -1,12 +1,23 @@
 type Environment = Record<string, unknown>;
 
 export function validateEnvironment(config: Environment): Environment {
-  const required = ['DATABASE_URL', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
+  const required = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
   const missing = required.filter((key) => !config[key]);
 
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missing.join(', ')}`,
+    );
+  }
+
+  const hasDatabaseUrl = Boolean(config.DATABASE_URL || config.DIRECT_URL);
+  const hasDatabaseParts = Boolean(
+    config.DB_HOST && config.DB_NAME && config.DB_PASS,
+  );
+
+  if (!hasDatabaseUrl && !hasDatabaseParts) {
+    throw new Error(
+      'Missing database config: set DATABASE_URL or DB_HOST, DB_NAME, DB_PASS',
     );
   }
 
