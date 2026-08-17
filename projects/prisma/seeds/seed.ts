@@ -21,7 +21,8 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-const DEFAULT_PASSWORD = 'Password123';
+const USER_PASSWORD = '12345678';
+const ADMIN_PASSWORD = 'Password123';
 
 async function main() {
   console.log('Đang kết nối cơ sở dữ liệu...');
@@ -30,16 +31,17 @@ async function main() {
   const prisma = new PrismaClient({ adapter });
 
   try {
-    console.log('Đang băm mật khẩu mặc định...');
-    const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    console.log('Đang băm mật khẩu tài khoản mẫu...');
+    const userPasswordHash = await bcrypt.hash(USER_PASSWORD, 10);
+    const adminPasswordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
 
-    // Các tài khoản này đủ để test Auth, Student profile và RoleGuard.
+    // Các tài khoản này đủ để test đầy đủ luồng theo từng role.
     const admin = await prisma.user.upsert({
       where: { email: 'admin@csmts.edu.vn' },
       update: {
         username: 'admin',
-        fullName: 'Hội đồng Học viện Admin',
-        passwordHash,
+        fullName: 'Quản trị hệ thống',
+        passwordHash: adminPasswordHash,
         role: UserRole.admin,
         phone: '0987654321',
         dateOfBirth: new Date('1985-05-15'),
@@ -50,8 +52,8 @@ async function main() {
       create: {
         username: 'admin',
         email: 'admin@csmts.edu.vn',
-        fullName: 'Hội đồng Học viện Admin',
-        passwordHash,
+        fullName: 'Quản trị hệ thống',
+        passwordHash: adminPasswordHash,
         role: UserRole.admin,
         phone: '0987654321',
         dateOfBirth: new Date('1985-05-15'),
@@ -59,12 +61,12 @@ async function main() {
       },
     });
 
-    const studentTest = await prisma.user.upsert({
-      where: { email: 'student.test2@csmts.local' },
+    const studentDucDang = await prisma.user.upsert({
+      where: { email: 'ducdang@csmts.local' },
       update: {
-        username: 'student.test2',
-        fullName: 'Sinh viên Test Postman',
-        passwordHash,
+        username: 'ducdang',
+        fullName: 'Đức Đặng',
+        passwordHash: userPasswordHash,
         role: UserRole.student,
         phone: '0901234567',
         dateOfBirth: new Date('2004-09-20'),
@@ -73,73 +75,23 @@ async function main() {
         refreshTokenExpiresAt: null,
       },
       create: {
-        username: 'student.test2',
-        email: 'student.test2@csmts.local',
-        fullName: 'Sinh viên Test Postman',
-        passwordHash,
+        username: 'ducdang',
+        email: 'ducdang@csmts.local',
+        fullName: 'Đức Đặng',
+        passwordHash: userPasswordHash,
         role: UserRole.student,
         phone: '0901234567',
         dateOfBirth: new Date('2004-09-20'),
-        isActive: true,
-      },
-    });
-
-    const studentSon = await prisma.user.upsert({
-      where: { email: 'student.son@csmts.edu.vn' },
-      update: {
-        username: 'student.son',
-        fullName: 'Nguyễn Thanh Sơn',
-        passwordHash,
-        role: UserRole.student,
-        phone: '0912345678',
-        dateOfBirth: new Date('2004-09-20'),
-        isActive: true,
-        refreshTokenHash: null,
-        refreshTokenExpiresAt: null,
-      },
-      create: {
-        username: 'student.son',
-        email: 'student.son@csmts.edu.vn',
-        fullName: 'Nguyễn Thanh Sơn',
-        passwordHash,
-        role: UserRole.student,
-        phone: '0912345678',
-        dateOfBirth: new Date('2004-09-20'),
-        isActive: true,
-      },
-    });
-
-    const studentDuc = await prisma.user.upsert({
-      where: { email: 'student.duc@csmts.edu.vn' },
-      update: {
-        username: 'student.duc',
-        fullName: 'Trần Minh Đức',
-        passwordHash,
-        role: UserRole.student,
-        phone: '0923456789',
-        dateOfBirth: new Date('2004-12-10'),
-        isActive: true,
-        refreshTokenHash: null,
-        refreshTokenExpiresAt: null,
-      },
-      create: {
-        username: 'student.duc',
-        email: 'student.duc@csmts.edu.vn',
-        fullName: 'Trần Minh Đức',
-        passwordHash,
-        role: UserRole.student,
-        phone: '0923456789',
-        dateOfBirth: new Date('2004-12-10'),
         isActive: true,
       },
     });
 
     const classLeader = await prisma.user.upsert({
-      where: { email: 'class.leader@csmts.edu.vn' },
+      where: { email: 'dangduc@csmts.local' },
       update: {
-        username: 'class.leader',
-        fullName: 'Lớp trưởng',
-        passwordHash,
+        username: 'dangduc',
+        fullName: 'Đặng Đức - Lớp trưởng',
+        passwordHash: userPasswordHash,
         role: UserRole.class_leader,
         phone: '0934567890',
         dateOfBirth: new Date('1990-03-25'),
@@ -148,10 +100,10 @@ async function main() {
         refreshTokenExpiresAt: null,
       },
       create: {
-        username: 'class.leader',
-        email: 'class.leader@csmts.edu.vn',
-        fullName: 'Lớp trưởng',
-        passwordHash,
+        username: 'dangduc',
+        email: 'dangduc@csmts.local',
+        fullName: 'Đặng Đức - Lớp trưởng',
+        passwordHash: userPasswordHash,
         role: UserRole.class_leader,
         phone: '0934567890',
         dateOfBirth: new Date('1990-03-25'),
@@ -160,11 +112,11 @@ async function main() {
     });
 
     const advisor = await prisma.user.upsert({
-      where: { email: 'advisor@csmts.edu.vn' },
+      where: { email: 'cvht@csmts.local' },
       update: {
-        username: 'advisor',
+        username: 'cvht',
         fullName: 'Cố vấn học tập',
-        passwordHash,
+        passwordHash: userPasswordHash,
         role: UserRole.advisor,
         phone: '0934567891',
         dateOfBirth: new Date('1988-03-25'),
@@ -173,10 +125,10 @@ async function main() {
         refreshTokenExpiresAt: null,
       },
       create: {
-        username: 'advisor',
-        email: 'advisor@csmts.edu.vn',
+        username: 'cvht',
+        email: 'cvht@csmts.local',
         fullName: 'Cố vấn học tập',
-        passwordHash,
+        passwordHash: userPasswordHash,
         role: UserRole.advisor,
         phone: '0934567891',
         dateOfBirth: new Date('1988-03-25'),
@@ -184,12 +136,64 @@ async function main() {
       },
     });
 
+    const facultyUser = await prisma.user.upsert({
+      where: { email: 'khoa1@csmts.local' },
+      update: {
+        username: 'khoa1',
+        fullName: 'Tài khoản Khoa',
+        passwordHash: userPasswordHash,
+        role: UserRole.faculty,
+        phone: '0934567892',
+        dateOfBirth: new Date('1986-06-12'),
+        isActive: true,
+        refreshTokenHash: null,
+        refreshTokenExpiresAt: null,
+      },
+      create: {
+        username: 'khoa1',
+        email: 'khoa1@csmts.local',
+        fullName: 'Tài khoản Khoa',
+        passwordHash: userPasswordHash,
+        role: UserRole.faculty,
+        phone: '0934567892',
+        dateOfBirth: new Date('1986-06-12'),
+        isActive: true,
+      },
+    });
+
+    const trainingDepartment = await prisma.user.upsert({
+      where: { email: 'pdt@csmts.local' },
+      update: {
+        username: 'pdt',
+        fullName: 'Phòng Đào tạo',
+        passwordHash: userPasswordHash,
+        role: UserRole.training_department,
+        phone: '0934567893',
+        dateOfBirth: new Date('1984-08-20'),
+        isActive: true,
+        refreshTokenHash: null,
+        refreshTokenExpiresAt: null,
+      },
+      create: {
+        username: 'pdt',
+        email: 'pdt@csmts.local',
+        fullName: 'Phòng Đào tạo',
+        passwordHash: userPasswordHash,
+        role: UserRole.training_department,
+        phone: '0934567893',
+        dateOfBirth: new Date('1984-08-20'),
+        isActive: true,
+      },
+    });
+
     console.log('Đang seed khoa, ngành và lớp học...');
     const facultiesData = [
-      { code: 'CNTT', name: 'Khoa Công nghệ thông tin' },
-      { code: 'KTE', name: 'Khoa Kinh tế' },
-      { code: 'DTVT', name: 'Khoa Điện tử viễn thông' },
-      { code: 'NNA', name: 'Khoa Ngôn ngữ Anh' },
+      { code: 'LKHLN', name: 'Khoa Luật và Khoa học liên ngành' },
+      { code: 'HCQT', name: 'Khoa Hành chính và Quản trị' },
+      {
+        code: 'QLPTKTXH',
+        name: 'Khoa Quản lý phát triển kinh tế và xã hội',
+      },
     ];
 
     const faculties: Record<string, any> = {};
@@ -209,14 +213,21 @@ async function main() {
     }
 
     const majorsData = [
-      { code: 'KTPM', name: 'Kỹ thuật phần mềm', facultyCode: 'CNTT' },
-      { code: 'KHMT', name: 'Khoa học máy tính', facultyCode: 'CNTT' },
-      { code: 'ATTT', name: 'An toàn thông tin', facultyCode: 'CNTT' },
-      { code: 'QTKD', name: 'Quản trị kinh doanh', facultyCode: 'KTE' },
-      { code: 'TCNH', name: 'Tài chính ngân hàng', facultyCode: 'KTE' },
-      { code: 'KT', name: 'Kế toán', facultyCode: 'KTE' },
-      { code: 'DTVT', name: 'Kỹ thuật Điện tử viễn thông', facultyCode: 'DTVT' },
-      { code: 'NNA', name: 'Ngôn ngữ Anh', facultyCode: 'NNA' },
+      { code: 'LKHLN_LHO', name: 'Luật', facultyCode: 'LKHLN' },
+      {
+        code: 'LKHLN_TTR',
+        name: 'Luật - chuyên ngành Thanh tra',
+        facultyCode: 'LKHLN',
+      },
+      { code: 'HCQT_QTN', name: 'Quản trị nhân lực', facultyCode: 'HCQT' },
+      { code: 'HCQT_QTV', name: 'Quản trị văn phòng', facultyCode: 'HCQT' },
+      { code: 'HCQT_QLN', name: 'Quản lý nhà nước', facultyCode: 'HCQT' },
+      { code: 'QLPTKTXH_KTE', name: 'Kinh tế', facultyCode: 'QLPTKTXH' },
+      {
+        code: 'QLPTKTXH_QTDVDL',
+        name: 'Quản trị dịch vụ du lịch và lữ hành',
+        facultyCode: 'QLPTKTXH',
+      },
     ];
 
     const majors: Record<string, any> = {};
@@ -240,16 +251,44 @@ async function main() {
       }
     }
 
+    await prisma.major.updateMany({
+      where: {
+        code: {
+          in: ['LKHLN_QTV', 'LKHLN_QTN', 'LKHLN_QLN', 'QLPTKTXH_DLH'],
+        },
+      },
+      data: {
+        isActive: false,
+      },
+    });
+
     const classesData = [
-      { code: 'KTPM-K18A', name: 'Kỹ thuật phần mềm K18A', majorCode: 'KTPM', enrollmentYear: 2022 },
-      { code: 'KTPM-K18B', name: 'Kỹ thuật phần mềm K18B', majorCode: 'KTPM', enrollmentYear: 2022 },
-      { code: 'KHMT-K18A', name: 'Khoa học máy tính K18A', majorCode: 'KHMT', enrollmentYear: 2022 },
-      { code: 'ATTT-K18A', name: 'An toàn thông tin K18A', majorCode: 'ATTT', enrollmentYear: 2022 },
-      { code: 'QTKD-K18A', name: 'Quản trị kinh doanh K18A', majorCode: 'QTKD', enrollmentYear: 2022 },
-      { code: 'TCNH-K18A', name: 'Tài chính ngân hàng K18A', majorCode: 'TCNH', enrollmentYear: 2022 },
-      { code: 'KT-K18A', name: 'Kế toán K18A', majorCode: 'KT', enrollmentYear: 2022 },
-      { code: 'DTVT-K18A', name: 'Kỹ thuật Điện tử viễn thông K18A', majorCode: 'DTVT', enrollmentYear: 2022 },
-      { code: 'NNA-K18A', name: 'Ngôn ngữ Anh K18A', majorCode: 'NNA', enrollmentYear: 2022 },
+      { code: '2205LHOC', name: 'Lớp 2205LHOC', majorCode: 'LKHLN_LHO', enrollmentYear: 2022 },
+      { code: '2205TTRB', name: 'Lớp 2205TTRB', majorCode: 'LKHLN_TTR', enrollmentYear: 2022 },
+      { code: '2305LHOD', name: 'Lớp 2305LHOD', majorCode: 'LKHLN_LHO', enrollmentYear: 2023 },
+      { code: '2305TTRD', name: 'Lớp 2305TTRD', majorCode: 'LKHLN_TTR', enrollmentYear: 2023 },
+      { code: '2305TTRE', name: 'Lớp 2305TTRE', majorCode: 'LKHLN_TTR', enrollmentYear: 2023 },
+      { code: '2405TTRD', name: 'Lớp 2405TTRD', majorCode: 'LKHLN_TTR', enrollmentYear: 2024 },
+      { code: '2405TTRE', name: 'Lớp 2405TTRE', majorCode: 'LKHLN_TTR', enrollmentYear: 2024 },
+      { code: '2405LHOG', name: 'Lớp 2405LHOG', majorCode: 'LKHLN_LHO', enrollmentYear: 2024 },
+      { code: '2505TTRD', name: 'Lớp 2505TTRD', majorCode: 'LKHLN_TTR', enrollmentYear: 2025 },
+      { code: '2505TTRE', name: 'Lớp 2505TTRE', majorCode: 'LKHLN_TTR', enrollmentYear: 2025 },
+      { code: '2505LHOH', name: 'Lớp 2505LHOH', majorCode: 'LKHLN_LHO', enrollmentYear: 2025 },
+      { code: '2205QTND', name: 'Lớp 2205QTND', majorCode: 'HCQT_QTN', enrollmentYear: 2022 },
+      { code: '2305QTNH', name: 'Lớp 2305QTNH', majorCode: 'HCQT_QTN', enrollmentYear: 2023 },
+      { code: '2405QTNG', name: 'Lớp 2405QTNG', majorCode: 'HCQT_QTN', enrollmentYear: 2024 },
+      { code: '2505QTNI', name: 'Lớp 2505QTNI', majorCode: 'HCQT_QTN', enrollmentYear: 2025 },
+      { code: '2205QTVD', name: 'Lớp 2205QTVD', majorCode: 'HCQT_QTV', enrollmentYear: 2022 },
+      { code: '2305QTVG', name: 'Lớp 2305QTVG', majorCode: 'HCQT_QTV', enrollmentYear: 2023 },
+      { code: '2405QTVL', name: 'Lớp 2405QTVL', majorCode: 'HCQT_QTV', enrollmentYear: 2024 },
+      { code: '2505QTVI', name: 'Lớp 2505QTVI', majorCode: 'HCQT_QTV', enrollmentYear: 2025 },
+      { code: '2205QLNG', name: 'Lớp 2205QLNG', majorCode: 'HCQT_QLN', enrollmentYear: 2022 },
+      { code: '2305QLNO', name: 'Lớp 2305QLNO', majorCode: 'HCQT_QLN', enrollmentYear: 2023 },
+      { code: '2405QLNQ', name: 'Lớp 2405QLNQ', majorCode: 'HCQT_QLN', enrollmentYear: 2024 },
+      { code: '2505QLNI', name: 'Lớp 2505QLNI', majorCode: 'HCQT_QLN', enrollmentYear: 2025 },
+      { code: '2405KTEI', name: 'Lớp 2405KTEI', majorCode: 'QLPTKTXH_KTE', enrollmentYear: 2024 },
+      { code: '2505KTEI', name: 'Lớp 2505KTEI', majorCode: 'QLPTKTXH_KTE', enrollmentYear: 2025 },
+      { code: '2505DLHC', name: 'Lớp 2505DLHC', majorCode: 'QLPTKTXH_QTDVDL', enrollmentYear: 2025 },
     ];
 
     const classes: Record<string, any> = {};
@@ -275,13 +314,11 @@ async function main() {
       }
     }
 
-    const studentClass = classes['KTPM-K18A'];
+    const studentClass = classes['2205LHOC'];
 
     console.log('Đang seed danh sách lớp và phân công hội đồng...');
     const classStudents = [
-      { user: studentTest, studentCode: 'SVTEST002' },
-      { user: studentSon, studentCode: 'SV20220001' },
-      { user: studentDuc, studentCode: 'SV20220002' },
+      { user: studentDucDang, studentCode: 'SV20220001' },
     ];
 
     for (const item of classStudents) {
@@ -323,6 +360,17 @@ async function main() {
       create: {
         userId: advisor.id,
         classId: studentClass.id,
+      },
+    });
+
+    await prisma.facultyAssignment.upsert({
+      where: { userId: facultyUser.id },
+      update: {
+        facultyId: faculties.LKHLN.id,
+      },
+      create: {
+        userId: facultyUser.id,
+        facultyId: faculties.LKHLN.id,
       },
     });
 
@@ -404,7 +452,7 @@ async function main() {
       where: { year: 2025, semester: SemesterNo.SEMESTER_2 }
     });
     
-    const students = [studentTest, studentSon, studentDuc];
+    const students = [studentDucDang];
     const forms = [];
     if (semesterForEvaluation) {
       for (const student of students) {
@@ -482,9 +530,13 @@ async function main() {
       }
     }
 
-    console.log('Seed hoàn tất. Mật khẩu mặc định cho tài khoản test:', DEFAULT_PASSWORD);
-    console.log('Tài khoản Postman:', studentTest.username);
-    console.log('Tài khoản admin:', admin.username);
+    console.log('Seed hoàn tất.');
+    console.log('Tài khoản lớp trưởng:', classLeader.username, '/', USER_PASSWORD);
+    console.log('Tài khoản CVHT:', advisor.username, '/', USER_PASSWORD);
+    console.log('Tài khoản khoa:', facultyUser.username, '/', USER_PASSWORD);
+    console.log('Tài khoản PĐT:', trainingDepartment.username, '/', USER_PASSWORD);
+    console.log('Tài khoản sinh viên:', studentDucDang.username, '/', USER_PASSWORD);
+    console.log('Tài khoản admin:', admin.username, '/', ADMIN_PASSWORD);
   } finally {
     await prisma.$disconnect();
     await pool.end();
