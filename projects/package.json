@@ -23,7 +23,9 @@
     "db:status": "prisma --config prisma.config.ts migrate status",
     "db:studio": "prisma --config prisma.config.ts studio",
     "db:reset": "prisma --config prisma.config.ts migrate reset",
-    "db:seed": "ts-node -T --project tsconfig.json prisma/seeds/seed.ts"
+    "db:seed": "ts-node -T --project tsconfig.json prisma/seeds/seed.ts",
+    "db:seed:k25-qtni": "ts-node -T --project tsconfig.json prisma/seeds/seed-k25-qtni-accounts.ts",
+    "db:seed:k25-qlni": "ts-node -T --project tsconfig.json prisma/seeds/seed-k25-qlni-accounts.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
