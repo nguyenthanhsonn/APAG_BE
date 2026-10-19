@@ -8,7 +8,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CaptchaService } from './captcha.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
@@ -30,21 +29,7 @@ import {
 @ApiResponse({ status: 401, description: 'Thiếu hoặc sai access token.' })
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly captchaService: CaptchaService,
-  ) {}
-
-  @ApiOperation({
-    summary: 'Lấy dữ liệu',
-    description:
-      'Endpoint GET captcha trong nhóm Auth; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
-  })
-  @ApiResponse({ status: 200, description: 'Thao tác thành công.' })
-  @Get('captcha')
-  createCaptcha() {
-    return this.captchaService.create();
-  }
+  constructor(private readonly authService: AuthService) {}
 
   @ApiOperation({
     summary: 'Tạo/Xử lý dữ liệu',

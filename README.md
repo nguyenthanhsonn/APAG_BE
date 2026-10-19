@@ -93,6 +93,69 @@ Chạy trong `projects/`:
 | `pnpm db:studio` | Mở Prisma Studio. |
 
 
+## API Chính
+
+Base URL:
+
+```text
+http://localhost:5050/api/v1
+```
+
+Auth:
+
+```http
+POST /auth/login
+GET  /auth/me
+POST /auth/refresh-token
+POST /auth/logout
+POST /auth/change-password
+```
+
+Đăng nhập qua `POST /auth/login` chỉ cần `username` và `password`.
+
+Sinh viên:
+
+```http
+GET   /students/me
+PATCH /students/me
+GET   /students/me/evaluations
+
+POST  /training-evaluations
+GET   /training-evaluations/me
+GET   /training-evaluations/:id
+PATCH /training-evaluations/:id
+POST  /training-evaluations/:id/submit
+```
+
+Ban cán sự/CVHT:
+
+```http
+GET   /class-council/classes/:id
+GET   /training-evaluations?classId=...
+GET   /training-evaluations/:id
+PATCH /training-evaluations/:id/review-scores
+POST  /training-evaluations/:id/review
+```
+
+Admin:
+
+```http
+GET   /admin/evaluations
+PATCH /admin/evaluations/:id/finalize
+PATCH /admin/evaluations/bulk-finalize
+POST  /admin/evaluations/finalize-by-filter
+
+GET   /admin/classes
+GET   /admin/students
+GET   /admin/faculties
+GET   /admin/majors
+GET   /admin/users
+GET   /admin/reports/overview
+```
+```
+
+Response này không có `stats`, `diff`, `studentScore`.
+
 ## Kiểm Tra Nhanh
 
 Backend:
