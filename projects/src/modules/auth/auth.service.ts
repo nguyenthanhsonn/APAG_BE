@@ -16,7 +16,6 @@ import { StudentAccountMailService } from '../mail/student-account-mail.service'
 import { UsersService } from '../users/users.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { CaptchaService } from './captcha.service';
 import { LoginDto } from './dto/login.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -74,15 +73,12 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly tokenStore: AuthTokenStoreService,
-    private readonly captchaService: CaptchaService,
     private readonly prisma: PrismaService,
     private readonly mailService: StudentAccountMailService,
   ) {}
 
   // đăng nhập bằng username + mật khẩu
   async login(dto: LoginDto): Promise<AuthTokens> {
-    await this.captchaService.verify(dto.captchaId, dto.captchaCode);
-
     const user = await this.usersService.findByUsernameWithPassword(
       dto.username,
     );

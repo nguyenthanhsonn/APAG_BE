@@ -1,5 +1,5 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
-import { IsString, IsUUID, Length, Matches, MinLength } from 'class-validator';
+import { IsString, Length, Matches, MinLength } from 'class-validator';
 import {
   normalizeUsername,
   USERNAME_FORMAT_MESSAGE,
@@ -18,11 +18,4 @@ export class LoginDto {
   @IsString()
   @MinLength(6)
   password: string;
-
-  @IsUUID()
-  captchaId: string;
-
-  @IsString()
-  @Length(5, 5)
-  captchaCode: string;
 }

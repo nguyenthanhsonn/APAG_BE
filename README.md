@@ -163,13 +163,14 @@ http://localhost:5050/api/v1
 Auth:
 
 ```http
-GET  /auth/captcha
 POST /auth/login
 GET  /auth/me
 POST /auth/refresh-token
 POST /auth/logout
 POST /auth/change-password
 ```
+
+Đăng nhập qua `POST /auth/login` chỉ cần `username` và `password`.
 
 Sinh viên:
 
