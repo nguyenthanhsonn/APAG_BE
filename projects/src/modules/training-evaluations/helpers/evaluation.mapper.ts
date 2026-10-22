@@ -48,6 +48,7 @@ export function mapToListResponse(
 ): EvaluationListResponse {
   return {
     id: evaluation.id,
+    version: evaluation.version,
     studentId: evaluation.studentId,
     semester: toApiSemester(evaluation.semester.semester),
     academicYear: toAcademicYear(evaluation.semester.year),
@@ -132,6 +133,7 @@ export function mapToAdminListItem(
 
   return {
     id: evaluation.id,
+    version: evaluation.version,
     status: evaluation.status,
     workflowStatus: evaluation.status,
     submissionStatus,
@@ -163,6 +165,7 @@ export function mapToAdminApprovalListItem(
 
   return {
     id: evaluation.id,
+    version: evaluation.version,
     status: evaluation.status,
     workflowStatus: evaluation.status,
     submissionStatus,
@@ -239,6 +242,7 @@ export function mapToStatusResponse(
 
   return {
     evaluationId: evaluation.id,
+    version: evaluation.version,
     status,
     statusLabel: toStatusLabel(status),
     isLocked: evaluation.isLocked,
@@ -318,6 +322,7 @@ export function mapToStudyScoreResponse(
 
   return {
     evaluationId: evaluation.id,
+    version: evaluation.version,
     regularScoreLevel: readNullableString(data.regularScoreLevel),
     academicRank: readNullableString(data.academicRank),
     activities,
@@ -344,6 +349,7 @@ export function mapToDisciplineScoreResponse(
 
   return {
     evaluationId: evaluation.id,
+    version: evaluation.version,
     baseScore: evaluation.disciplineBaseScore,
     violations,
     deductedScore,
@@ -365,6 +371,7 @@ export function mapToActivityScoreResponse(
 
   return {
     evaluationId: evaluation.id,
+    version: evaluation.version,
     politicalActivityLevel: readNullableString(data.politicalActivityLevel),
     cultureSportLevel: readNullableString(data.cultureSportLevel),
     clubActivityLevel: readNullableString(data.clubActivityLevel),
@@ -388,6 +395,7 @@ export function mapToCommunityScoreResponse(
 
   return {
     evaluationId: evaluation.id,
+    version: evaluation.version,
     lawComplianceLevel: readNullableString(data.lawComplianceLevel),
     volunteerActivityLevel: readNullableString(data.volunteerActivityLevel),
     communityRelationshipLevel: readNullableString(
@@ -411,6 +419,7 @@ export function mapToRoleScoreResponse(
 
   return {
     evaluationId: evaluation.id,
+    version: evaluation.version,
     studentRoleType: readNullableString(data.studentRoleType),
     positionGroup: readNullableString(data.positionGroup),
     taskCompletionLevel: readNullableString(data.taskCompletionLevel),

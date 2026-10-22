@@ -1,0 +1,42 @@
+{
+  "capturedAt": "2026-10-21T09:42:40.039Z",
+  "compiledBackend": {
+    "sha256": "073b528765c46babf3aa69a10c92ebc51c976e8b4ceef6469092917c1861d185",
+    "files": 273
+  },
+  "k6Scripts": {
+    "sha256": "d7ad88f1c354629c15237bcc02d9b984fe4354be4fd69b97670a8a7e289bc0ed",
+    "files": 6
+  },
+  "dependencies": {
+    "@nestjs/core": "11.1.27",
+    "@prisma/client": "7.10.1",
+    "@prisma/adapter-pg": "7.10.1",
+    "pg": "8.22.0",
+    "bcrypt": "6.0.0",
+    "pino": "10.4.0",
+    "@prometheus-io/client": "0.16.1"
+  },
+  "timing": "after measurements; records the compiled backend used by pool experiment",
+  "fixtureCountsAtClone": {
+    "users": 10492,
+    "faculties": 10,
+    "majors": 20,
+    "classes": 400,
+    "class_students": 10000,
+    "semesters": 3,
+    "evaluation_forms": 30000,
+    "form_criteria_scores": 300000,
+    "evidences": 10002,
+    "notifications": 10000
+  },
+  "benchmarkScripts": [
+    "apply.cjs",
+    "index-experiments.cjs",
+    "measure.cjs",
+    "pool-cluster.cjs",
+    "prepare.cjs",
+    "report.cjs",
+    "verify.cjs"
+  ]
+}

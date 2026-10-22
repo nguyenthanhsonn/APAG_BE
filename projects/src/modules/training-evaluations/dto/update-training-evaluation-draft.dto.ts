@@ -1,3 +1,4 @@
+import { ExpectedVersionDto } from './expected-version.dto';
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsOptional,
@@ -7,7 +8,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 
-export class UpdateTrainingEvaluationDraftDto {
+export class UpdateTrainingEvaluationDraftDto extends ExpectedVersionDto {
   @IsOptional()
   @Transform(({ value }: TransformFnParams): unknown =>
     typeof value === 'string' ? value.trim() : value,

@@ -16,6 +16,9 @@ function readConfigValue(source: ConfigSource, key: string): string | undefined 
     return undefined;
   }
 
+  if (key === 'DB_PASS') {
+    return String(value).length > 0 ? String(value) : undefined;
+  }
   const normalized = String(value).trim();
   return normalized.length > 0 ? normalized : undefined;
 }

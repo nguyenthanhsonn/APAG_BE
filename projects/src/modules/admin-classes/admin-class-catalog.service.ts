@@ -1,3 +1,6 @@
+import { ImportPreviewStore } from '../../infrastructure/cache/import-preview-store.service';
+import { cacheKeys } from '../../infrastructure/cache/cache.keys';
+import { throwBusinessUniqueConflict } from '../../common/helpers/business-uniqueness.helper';
 import {
   BadRequestException,
   ConflictException,
@@ -87,14 +90,10 @@ const IMPORT_PREVIEW_TTL_MS = 10 * 60 * 1000;
  */
 @Injectable()
 export class AdminClassCatalogService {
-  private readonly importPreviewCache = new Map<
-    string,
-    CachedClassImportPlan
-  >();
-
   constructor(
     private readonly repository: AdminClassCatalogRepository,
     private readonly prisma: PrismaService,
+    private readonly previews: ImportPreviewStore,
   ) {}
 
   /** Lấy danh sách lớp có phân trang, tìm kiếm và lọc theo ngành/khoa. Mặc định chỉ lấy lớp chưa xóa mềm. */
@@ -169,7 +168,10 @@ export class AdminClassCatalogService {
         select: { facultyId: true },
       });
 
-      if (!assignment || assignment.facultyId !== classRecord.major.faculty.id) {
+      if (
+        !assignment ||
+        assignment.facultyId !== classRecord.major.faculty.id
+      ) {
         throw new ForbiddenException('Bạn không được quản lý khoa của lớp này');
       }
 
@@ -182,7 +184,9 @@ export class AdminClassCatalogService {
     ].some((assignment) => assignment.userId === userId);
 
     if (!isAssigned) {
-      throw new ForbiddenException('Bạn không được phân công phụ trách lớp này');
+      throw new ForbiddenException(
+        'Bạn không được phân công phụ trách lớp này',
+      );
     }
 
     return mapToAdminClassDetailResponse(classRecord);
@@ -406,7 +410,7 @@ export class AdminClassCatalogService {
 
     const importToken = randomUUID();
     const expiresAt = new Date(Date.now() + IMPORT_PREVIEW_TTL_MS);
-    this.importPreviewCache.set(importToken, {
+    await this.previews.set(cacheKeys.classImport(importToken), {
       expiresAt: expiresAt.getTime(),
       totalRows: rows.length,
       rows: previewRows,
@@ -431,7 +435,10 @@ export class AdminClassCatalogService {
   }
 
   async confirmImport(importToken: string): Promise<ImportClassesResult> {
-    const plan = this.importPreviewCache.get(importToken);
+    const plan = await this.previews.get<CachedClassImportPlan>(
+      cacheKeys.classImport(importToken),
+      true,
+    );
 
     if (!plan) {
       throw new BadRequestException(
@@ -440,13 +447,10 @@ export class AdminClassCatalogService {
     }
 
     if (plan.expiresAt <= Date.now()) {
-      this.importPreviewCache.delete(importToken);
       throw new BadRequestException(
         'Phiên import đã hết hạn, vui lòng tải lại file',
       );
     }
-
-    this.importPreviewCache.delete(importToken);
 
     try {
       await this.repository.createMany(
@@ -544,6 +548,13 @@ export class AdminClassCatalogService {
       }
     }
 
+    const assignedElsewhere =
+      await this.repository.findClassLeadersAssignedElsewhere(id, userIds);
+    if (assignedElsewhere.length)
+      throw new ConflictException(
+        'Lớp trưởng đã được phân công cho một lớp khác',
+      );
+
     try {
       await this.repository.replaceClassLeaders(id, userIds);
       return this.findOne(id);
@@ -616,9 +627,7 @@ export class AdminClassCatalogService {
       return;
     }
 
-    if (error.code === 'P2002') {
-      throw new ConflictException('Mã lớp đã tồn tại');
-    }
+    throwBusinessUniqueConflict(error);
 
     if (error.code === 'P2025') {
       throw new NotFoundException('Không tìm thấy lớp học');

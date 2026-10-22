@@ -1,3 +1,10 @@
+import { ProfileCacheService } from '../../infrastructure/cache/profile-cache.service';
+import { safeError } from '../../observability/safe-log';
+import { normalizeUsername } from '../../common/helpers/username.helper';
+import {
+  assertUserIdentifiersAvailable,
+  throwBusinessUniqueConflict,
+} from '../../common/helpers/business-uniqueness.helper';
 import {
   BadRequestException,
   ConflictException,
@@ -8,7 +15,10 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../database/prisma.service';
-import { Prisma, UserRole as PrismaUserRole } from '../../generated/prisma/client';
+import {
+  Prisma,
+  UserRole as PrismaUserRole,
+} from '../../generated/prisma/client';
 import {
   UserRole as SharedUserRole,
   type PaginatedResult,
@@ -47,6 +57,7 @@ export class AdminUsersService {
     private readonly prisma: PrismaService,
     private readonly tokenStore: AuthTokenStoreService,
     private readonly accountMailService: StudentAccountMailService,
+    private readonly profiles: ProfileCacheService,
   ) {}
 
   /**
@@ -119,6 +130,11 @@ export class AdminUsersService {
       'Vui lòng dùng API /admin/students để tạo sinh viên',
     );
 
+    const username = normalizeUsername(dto.username);
+    await assertUserIdentifiersAvailable(this.prisma, {
+      username,
+      email: normalizeEmail(dto.email),
+    });
     const passwordHash = await bcrypt.hash(dto.password, PASSWORD_SALT_ROUNDS);
 
     try {
@@ -133,7 +149,7 @@ export class AdminUsersService {
 
         const created = await tx.user.create({
           data: {
-            username: dto.username,
+            username,
             email: normalizeEmail(dto.email),
             fullName: dto.fullName.trim(),
             passwordHash,
@@ -145,11 +161,21 @@ export class AdminUsersService {
         });
 
         if (dto.classId) {
-          await replaceManagedClassAssignment(tx, created.id, dto.role, dto.classId);
+          await replaceManagedClassAssignment(
+            tx,
+            created.id,
+            dto.role,
+            dto.classId,
+          );
         }
 
         if (dto.facultyId) {
-          await replaceManagedFacultyAssignment(tx, created.id, dto.role, dto.facultyId);
+          await replaceManagedFacultyAssignment(
+            tx,
+            created.id,
+            dto.role,
+            dto.facultyId,
+          );
         }
 
         if (dto.classId || dto.facultyId) {
@@ -167,7 +193,8 @@ export class AdminUsersService {
 
       return {
         ...response,
-        accountEmailSent: mailResult.sent,
+        accountEmailSent: false, // SMTP delivery is asynchronous.
+        accountEmailQueued: mailResult.sent,
         accountEmailError: mailResult.error,
       };
     } catch (error) {
@@ -203,6 +230,18 @@ export class AdminUsersService {
       this.assertNotSelf(id, currentUserId, 'khóa');
     }
 
+    await assertUserIdentifiersAvailable(
+      this.prisma,
+      {
+        username:
+          dto.username !== undefined
+            ? normalizeUsername(dto.username)
+            : undefined,
+        email: dto.email !== undefined ? normalizeEmail(dto.email) : undefined,
+      },
+      id,
+    );
+
     const activeStateData =
       dto.isActive !== undefined
         ? buildAccountActiveStateData(dto.isActive)
@@ -221,9 +260,15 @@ export class AdminUsersService {
         const updated = await tx.user.update({
           where: { id },
           data: {
-            ...(dto.fullName !== undefined && { fullName: dto.fullName.trim() }),
-            ...(dto.username !== undefined && { username: dto.username }),
-            ...(dto.email !== undefined && { email: normalizeEmail(dto.email) }),
+            ...(dto.fullName !== undefined && {
+              fullName: dto.fullName.trim(),
+            }),
+            ...(dto.username !== undefined && {
+              username: normalizeUsername(dto.username),
+            }),
+            ...(dto.email !== undefined && {
+              email: normalizeEmail(dto.email),
+            }),
             ...(dto.phone !== undefined && { phone: dto.phone }),
             ...(dto.dateOfBirth !== undefined && {
               dateOfBirth: parseOptionalDateOnly(dto.dateOfBirth),
@@ -271,8 +316,9 @@ export class AdminUsersService {
       });
 
       if (dto.isActive === false) {
-        this.tokenStore.revokeUserTokensIssuedBefore(id);
+        await this.tokenStore.revokeUserTokensIssuedBefore(id);
       }
+      await this.profiles.invalidate(id);
 
       return mapToAdminUserResponse(user);
     } catch (error) {
@@ -305,8 +351,9 @@ export class AdminUsersService {
     });
 
     if (dto.locked) {
-      this.tokenStore.revokeUserTokensIssuedBefore(id);
+      await this.tokenStore.revokeUserTokensIssuedBefore(id);
     }
+    await this.profiles.invalidate(id);
 
     return mapToAdminUserResponse(user);
   }
@@ -341,7 +388,8 @@ export class AdminUsersService {
         return deletedUser;
       });
 
-      this.tokenStore.revokeUserTokensIssuedBefore(id);
+      await this.tokenStore.revokeUserTokensIssuedBefore(id);
+      await this.profiles.invalidate(id);
 
       return mapToAdminUserResponse(user);
     } catch (error) {
@@ -420,11 +468,11 @@ export class AdminUsersService {
 
       return { sent: true, error: null };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Gửi email tài khoản thất bại';
-      this.logger.error(
-        `Gửi email tài khoản ${dto.role} thất bại: ${message}`,
-      );
+      this.logger.error({
+        event: 'mail.staff_account_failed',
+        role: dto.role,
+        error: safeError(error),
+      });
 
       return {
         sent: false,
@@ -438,16 +486,7 @@ export class AdminUsersService {
       return;
     }
 
-    if (error.code === 'P2002') {
-      const target =
-        (error.meta?.target as string[] | undefined)?.join(',') ?? '';
-
-      if (target.includes('username')) {
-        throw new ConflictException('Tên đăng nhập đã tồn tại');
-      }
-
-      throw new ConflictException('Email đã tồn tại');
-    }
+    throwBusinessUniqueConflict(error);
 
     if (error.code === 'P2025') {
       throw new NotFoundException('Không tìm thấy tài khoản');

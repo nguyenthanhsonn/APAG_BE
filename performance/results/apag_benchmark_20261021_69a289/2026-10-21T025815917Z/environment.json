@@ -1,0 +1,81 @@
+{
+  "runId": "2026-10-21T025815917Z",
+  "startedAt": "2026-10-21T02:58:15.921Z",
+  "synthetic": true,
+  "databaseName": "apag_benchmark_20261021_69a289",
+  "sourceSha256": "37f0a230771e999863d1b29adda95868e1ea53076b6e2e646e15d76b25f3a1cd",
+  "gitHead": "4876b15aa63e8b79945aae626bd6fc3b0be53d5b",
+  "dirtyWorktree": true,
+  "node": "v24.20.0",
+  "k6": "k6 v2.3.0 (commit/e088784614, go1.26.8, darwin/arm64)",
+  "platform": "darwin 25.6.0 arm64",
+  "cpu": "Apple M4",
+  "logicalCpus": 10,
+  "memoryBytes": 17179869184,
+  "loadAverageAtStart": [
+    2.244140625,
+    2.1884765625,
+    2.83837890625
+  ],
+  "dataset": {
+    "users": 10492,
+    "faculties": 10,
+    "majors": 20,
+    "classes": 400,
+    "class_students": 10000,
+    "semesters": 3,
+    "evaluation_forms": 30000,
+    "form_criteria_scores": 300000,
+    "evidences": 10002,
+    "notifications": 10000
+  },
+  "postgres": {
+    "postgres": "PostgreSQL 17.9 on x86_64-apple-darwin24.6.0, compiled by Apple clang version 17.0.0 (clang-1700.6.3.2), 64-bit",
+    "bytes": "97810099",
+    "max_connections": "100"
+  },
+  "settings": {
+    "durationSeconds": 2,
+    "warmupSeconds": 1,
+    "thinkTimeSeconds": 0.1,
+    "model": "closed constant-vus",
+    "tracing": false,
+    "logging": "info JSON to file",
+    "poolMax": "pg default 10",
+    "uvThreadpoolSize": "default 4",
+    "backendPort": 50509,
+    "resourceIntervalSeconds": 1
+  },
+  "cases": [
+    {
+      "name": "login_50",
+      "mode": "login",
+      "vus": 50
+    },
+    {
+      "name": "evaluations_semester",
+      "mode": "evaluations_semester",
+      "vus": 50
+    },
+    {
+      "name": "write",
+      "mode": "write",
+      "vus": 50
+    },
+    {
+      "name": "conflict",
+      "mode": "conflict",
+      "vus": 20
+    },
+    {
+      "name": "reports_overview",
+      "mode": "reports_overview",
+      "vus": 20
+    },
+    {
+      "name": "export",
+      "mode": "export",
+      "vus": 5
+    }
+  ]
+}

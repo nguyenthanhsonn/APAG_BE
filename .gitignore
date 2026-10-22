@@ -15,3 +15,9 @@ Thumbs.db
 # Package manager cache
 .pnpm-store/
 
+
+# Local infrastructure binaries/state (never commit AOF/auth state)
+/.local/
+
+# Private async report output
+/projects/.local/

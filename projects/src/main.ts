@@ -1,39 +1,60 @@
+import './observability/initialize';
+
 async function bootstrap() {
-  const debugStartup = process.env.DEBUG_STARTUP === 'true';
+  const [
+    { ValidationPipe, Logger, RequestMethod },
+    { ConfigService },
+    { NestFactory },
+  ] = await Promise.all([
+    import('@nestjs/common'),
+    import('@nestjs/config'),
+    import('@nestjs/core'),
+  ]);
 
-  if (debugStartup) console.time('startup');
-  if (debugStartup) console.time('load-nest');
-  const [{ ValidationPipe }, { ConfigService }, { NestFactory }] =
-    await Promise.all([
-      import('@nestjs/common'),
-      import('@nestjs/config'),
-      import('@nestjs/core'),
-    ]);
-  if (debugStartup) console.timeEnd('load-nest');
-
-  if (debugStartup) console.time('load-app-support');
   const [{ HttpExceptionFilter }, { ResponseInterceptor }] = await Promise.all([
     import('./common/filters/http-exception.filter'),
     import('./common/interceptors/response.interceptor'),
   ]);
-  if (debugStartup) console.timeEnd('load-app-support');
 
-  if (debugStartup) console.time('load-app-module');
   const { AppModule } = await import('./app.module');
-  if (debugStartup) console.timeEnd('load-app-module');
 
-  if (debugStartup) console.time('create-nest-app');
   const app = await NestFactory.create(AppModule, {
     abortOnError: false,
+    bufferLogs: true,
   });
-  if (debugStartup) console.timeEnd('create-nest-app');
 
   const configService = app.get(ConfigService);
+  const { StructuredLogger } =
+    await import('./observability/structured-logger');
+  const { RequestTelemetryMiddleware } =
+    await import('./observability/request-telemetry.middleware');
+  const { TelemetryContextInterceptor } =
+    await import('./observability/telemetry-context.interceptor');
+  app.useLogger(app.get(StructuredLogger));
+  const telemetry = app.get(RequestTelemetryMiddleware);
+  app.use(telemetry.use.bind(telemetry));
+  app.enableShutdownHooks();
+  const { NotificationsIoAdapter } =
+    await import('./modules/gateways/notifications-io.adapter');
+  const { SocketRedisService } =
+    await import('./infrastructure/cache/socket-redis.service');
+  const socketRedis = app.get(SocketRedisService);
+  await socketRedis.connect();
+  app.useWebSocketAdapter(
+    new NotificationsIoAdapter(
+      app,
+      configService.getOrThrow<string[]>('app.frontendUrls'),
+      socketRedis,
+    ),
+  );
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', {
+    exclude: [{ path: 'metrics', method: RequestMethod.GET }],
+  });
   app.enableCors({
     origin: configService.get<string[]>('app.frontendUrls'),
     credentials: true,
+    exposedHeaders: ['X-Request-ID', 'X-Correlation-ID'],
   });
   app.useGlobalPipes(
     new ValidationPipe({
@@ -43,11 +64,14 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalInterceptors(
+    app.get(TelemetryContextInterceptor),
+    new ResponseInterceptor(),
+  );
 
-  const swaggerEnabled = process.env.SWAGGER_ENABLED !== 'false';
+  const swaggerEnabled =
+    configService.getOrThrow<boolean>('app.swaggerEnabled');
   if (swaggerEnabled) {
-    if (debugStartup) console.time('setup-swagger');
     const { DocumentBuilder, SwaggerModule } = await import('@nestjs/swagger');
     const swaggerConfig = new DocumentBuilder()
       .setTitle('CSMTS API')
@@ -79,38 +103,25 @@ async function bootstrap() {
       },
       customSiteTitle: 'CSMTS API Docs',
     });
-    if (debugStartup) console.timeEnd('setup-swagger');
   }
 
   const port = Number(configService.get('app.port') ?? 5050);
 
-  console.log('Đang chạy backend...');
-  console.log('PORT:', port);
-
-  await app.listen(port, '0.0.0.0');
-
-  const { networkInterfaces } = await import('node:os');
-  const zerotierIp = Object.values(networkInterfaces())
-    .flat()
-    .find((networkInterface) => {
-      return (
-        networkInterface?.family === 'IPv4' &&
-        !networkInterface.internal &&
-        networkInterface.address.startsWith('10.36.120.')
-      );
-    })?.address;
-
-  console.log(`Backend local: http://localhost:${port}/api/v1`);
-  if (zerotierIp) {
-    console.log(`Backend ZeroTier: http://${zerotierIp}:${port}/api/v1`);
-  }
-  if (swaggerEnabled) {
-    console.log(`Swagger docs: http://localhost:${port}/api/docs`);
-    if (zerotierIp) {
-      console.log(`Swagger ZeroTier docs: http://${zerotierIp}:${port}/api/docs`);
-    }
-  }
-  if (debugStartup) console.timeEnd('startup');
+  const host = configService.getOrThrow<string>('app.host');
+  await app.listen(port, host);
+  const logger = new Logger('Bootstrap');
+  logger.log(`Backend listening on ${host}:${port}/api/v1`);
+  if (swaggerEnabled) logger.log('Swagger available at /api/docs');
 }
 
-void bootstrap();
+void bootstrap().catch(async (error: unknown) => {
+  const { getLogger } = await import('./observability/structured-logger');
+  const { safeError } = await import('./observability/safe-log');
+  getLogger().fatal(
+    { event: 'application.startup_failed', error: safeError(error) },
+    'Startup failed; check configuration and dependency availability',
+  );
+  const { shutdownTelemetry } = await import('./observability/initialize');
+  await shutdownTelemetry();
+  process.exitCode = 1;
+});

@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "databaseName": "apag_benchmark_dbperf_1792574913179_c7ed",
+  "successful": true,
+  "migrations": [
+    "20261021010000_add_evaluation_listing_index",
+    "20261021020000_add_user_listing_index"
+  ],
+  "execution": "Prisma migrate deploy; separate concurrent statements"
+}

@@ -413,7 +413,8 @@ export const ModelName = {
   FormCriteriaScore: 'FormCriteriaScore',
   FormAttachment: 'FormAttachment',
   Evidence: 'Evidence',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  OperationReceipt: 'OperationReceipt'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -429,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "post" | "passwordResetToken" | "facultyAssignment" | "faculty" | "major" | "class" | "classStudent" | "classLeaderAssignment" | "advisorAssignment" | "semester" | "evaluationCriteria" | "evaluationForm" | "formCriteriaScore" | "formAttachment" | "evidence" | "notification"
+    modelProps: "user" | "post" | "passwordResetToken" | "facultyAssignment" | "faculty" | "major" | "class" | "classStudent" | "classLeaderAssignment" | "advisorAssignment" | "semester" | "evaluationCriteria" | "evaluationForm" | "formCriteriaScore" | "formAttachment" | "evidence" | "notification" | "operationReceipt"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1691,6 +1692,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    OperationReceipt: {
+      payload: Prisma.$OperationReceiptPayload<ExtArgs>
+      fields: Prisma.OperationReceiptFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OperationReceiptFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OperationReceiptFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload>
+        }
+        findFirst: {
+          args: Prisma.OperationReceiptFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OperationReceiptFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload>
+        }
+        findMany: {
+          args: Prisma.OperationReceiptFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload>[]
+        }
+        create: {
+          args: Prisma.OperationReceiptCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload>
+        }
+        createMany: {
+          args: Prisma.OperationReceiptCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OperationReceiptCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload>[]
+        }
+        delete: {
+          args: Prisma.OperationReceiptDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload>
+        }
+        update: {
+          args: Prisma.OperationReceiptUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload>
+        }
+        deleteMany: {
+          args: Prisma.OperationReceiptDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OperationReceiptUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OperationReceiptUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload>[]
+        }
+        upsert: {
+          args: Prisma.OperationReceiptUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OperationReceiptPayload>
+        }
+        aggregate: {
+          args: Prisma.OperationReceiptAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOperationReceipt>
+        }
+        groupBy: {
+          args: Prisma.OperationReceiptGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OperationReceiptGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OperationReceiptCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OperationReceiptCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1896,6 +1971,7 @@ export type EvaluationCriteriaScalarFieldEnum = (typeof EvaluationCriteriaScalar
 
 export const EvaluationFormScalarFieldEnum = {
   id: 'id',
+  version: 'version',
   studentId: 'studentId',
   classId: 'classId',
   semesterId: 'semesterId',
@@ -1978,6 +2054,7 @@ export type EvidenceScalarFieldEnum = (typeof EvidenceScalarFieldEnum)[keyof typ
 
 
 export const NotificationScalarFieldEnum = {
+  dedupeKey: 'dedupeKey',
   id: 'id',
   userId: 'userId',
   type: 'type',
@@ -1988,6 +2065,16 @@ export const NotificationScalarFieldEnum = {
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const OperationReceiptScalarFieldEnum = {
+  scope: 'scope',
+  requestHash: 'requestHash',
+  response: 'response',
+  createdAt: 'createdAt'
+} as const
+
+export type OperationReceiptScalarFieldEnum = (typeof OperationReceiptScalarFieldEnum)[keyof typeof OperationReceiptScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2350,6 +2437,7 @@ export type GlobalOmitConfig = {
   formAttachment?: Prisma.FormAttachmentOmit
   evidence?: Prisma.EvidenceOmit
   notification?: Prisma.NotificationOmit
+  operationReceipt?: Prisma.OperationReceiptOmit
 }
 
 /* Types for Logging */

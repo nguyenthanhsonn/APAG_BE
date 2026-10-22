@@ -1,3 +1,4 @@
+import { ExpectedVersionDto } from './expected-version.dto';
 import {
   ArrayMinSize,
   IsArray,
@@ -27,7 +28,7 @@ export class ReviewScoreItemDto {
   reviewerNote?: string;
 }
 
-export class ReviewScoresDto {
+export class ReviewScoresDto extends ExpectedVersionDto {
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

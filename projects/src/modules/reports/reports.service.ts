@@ -133,7 +133,7 @@ export class ReportsService {
    * Toàn bộ danh sách phiếu khớp bộ lọc (không phân trang) để render ra file Excel/PDF.
    * Sắp xếp theo lớp rồi tên sinh viên — phù hợp cho tài liệu đọc/lưu trữ hơn là "mới nhất trước".
    */
-  async getExportRows(query: ReportsExportQueryDto): Promise<FlatExportRow[]> {
+  async getExportRows(query: ReportsExportQueryDto, limit?: number): Promise<FlatExportRow[]> {
     const semesterId = await resolveSemesterId(
       this.prisma,
       query.semester,
@@ -149,6 +149,7 @@ export class ReportsService {
 
     const evaluations = await this.prisma.evaluationForm.findMany({
       where,
+      ...(limit ? { take: limit } : {}),
       select: evaluationAdminListSelect,
       orderBy: [{ class: { name: 'asc' } }, { student: { fullName: 'asc' } }],
     });

@@ -1,3 +1,5 @@
+import { createNotificationOnce } from './create-notification-once';
+import { getEvaluationDeadline } from '../training-evaluations/domain/evaluation-deadline.policy';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { FormStatus, SemesterNo } from '../../generated/prisma/client';
 import { UserRole, type PaginatedResult } from '../../common/shared';
@@ -64,10 +66,7 @@ export class NotificationsService {
     return { unreadCount };
   }
 
-  async markAsRead(
-    userId: string,
-    id: string,
-  ): Promise<NotificationResponse> {
+  async markAsRead(userId: string, id: string): Promise<NotificationResponse> {
     const notification = await this.prisma.notification.findFirst({
       where: { id, userId },
       select: { id: true },
@@ -143,35 +142,37 @@ export class NotificationsService {
     }
 
     const semesterLabel = toSemesterLabel(activeSemester.semester);
-    const deadlineText = activeSemester.studentDeadline
-      ? ` Hạn nộp: ${formatVietnamDate(activeSemester.studentDeadline)}.`
+    const deadline = getEvaluationDeadline(role, activeSemester);
+    const deadlineText = deadline
+      ? ` Hạn nộp: ${formatVietnamDate(deadline)}.`
       : '';
     const content = `Bạn hiện chưa nộp phiếu đánh giá rèn luyện ${semesterLabel} năm học ${activeSemester.year}.${deadlineText} Việc hoàn thành đánh giá rèn luyện đúng hạn giúp bạn đảm bảo quyền lợi xét học bổng, khen thưởng, thi đua và các chế độ chính sách khác của nhà trường. Vui lòng truy cập hệ thống để hoàn thành phiếu tự đánh giá trước khi hết hạn.`;
 
-    const existed = await this.prisma.notification.findFirst({
+    // Dữ liệu trước migration chưa có dedupeKey; giữ reminder cũ thay vì tạo thêm một bản.
+    // Unique constraint trong createNotificationOnce vẫn bảo vệ hai request cùng vượt qua SELECT.
+    const legacyReminder = await this.prisma.notification.findFirst({
       where: {
         userId,
+        dedupeKey: null,
         title: EVALUATION_REMINDER_TITLE,
         content,
       },
       select: { id: true },
     });
+    if (legacyReminder) return;
 
-    if (existed) {
-      return;
-    }
-
-    const notification = await this.prisma.notification.create({
-      data: {
+    const notification = await createNotificationOnce(
+      this.prisma,
+      {
         userId,
         type: NotificationType.NEW_EVALUATION_PERIOD,
         title: EVALUATION_REMINDER_TITLE,
         content,
       },
-      select: notificationSelect,
-    });
+      ['evaluation-reminder', activeSemester.id],
+    );
 
-    this.emitCreated(mapToNotificationResponse(notification));
+    if (notification) this.emitCreated(mapToNotificationResponse(notification));
   }
 }
 

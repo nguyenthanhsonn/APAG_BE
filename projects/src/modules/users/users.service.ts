@@ -1,10 +1,9 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import {
   authProfileUserSelect,
+  authorizationUserSelect,
+  type AuthorizationUser,
   loginUserSelect,
   passwordUserSelect,
   publicUserSelect,
@@ -38,6 +37,14 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  /** Không cache role/trạng thái: thay đổi quyền hoặc soft delete phải có hiệu lực ở request kế tiếp. */
+  findAuthorizationUserById(id: string): Promise<AuthorizationUser | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: authorizationUserSelect,
+    });
   }
 
   async findAuthProfileById(id: string): Promise<AuthProfileUser> {
@@ -99,6 +106,24 @@ export class UsersService {
         refreshTokenExpiresAt,
       },
     });
+  }
+
+  async rotateRefreshToken(
+    id: string,
+    previousHash: string,
+    nextHash: string,
+    expiresAt: Date,
+  ): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: {
+        id,
+        refreshTokenHash: previousHash,
+        isActive: true,
+        deletedAt: null,
+      },
+      data: { refreshTokenHash: nextHash, refreshTokenExpiresAt: expiresAt },
+    });
+    return result.count === 1;
   }
 
   async clearRefreshToken(id: string): Promise<void> {

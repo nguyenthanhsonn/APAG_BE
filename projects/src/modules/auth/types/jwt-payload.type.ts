@@ -13,6 +13,7 @@ export type JwtPayload = {
   email: string;
   role: UserRole;
   jti?: string;
+  revocationStamp?: string;
   iat?: number;
   exp?: number;
 };

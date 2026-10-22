@@ -1,3 +1,4 @@
+import { ExpectedVersionDto } from './expected-version.dto';
 import { IsIn, IsInt, Max, Min } from 'class-validator';
 
 export const POLITICAL_ACTIVITY_LEVELS = [
@@ -34,7 +35,7 @@ export const SOCIAL_PREVENTION_LEVELS = [
 ] as const;
 export type SocialPreventionLevel = (typeof SOCIAL_PREVENTION_LEVELS)[number];
 
-export class UpdateActivityScoreDto {
+export class UpdateActivityScoreDto extends ExpectedVersionDto {
   @IsIn(POLITICAL_ACTIVITY_LEVELS)
   politicalActivityLevel: PoliticalActivityLevel;
 

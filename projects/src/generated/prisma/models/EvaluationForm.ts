@@ -27,6 +27,7 @@ export type AggregateEvaluationForm = {
 }
 
 export type EvaluationFormAvgAggregateOutputType = {
+  version: number | null
   studentScore: number | null
   classScore: number | null
   finalScore: number | null
@@ -39,6 +40,7 @@ export type EvaluationFormAvgAggregateOutputType = {
 }
 
 export type EvaluationFormSumAggregateOutputType = {
+  version: number | null
   studentScore: number | null
   classScore: number | null
   finalScore: number | null
@@ -52,6 +54,7 @@ export type EvaluationFormSumAggregateOutputType = {
 
 export type EvaluationFormMinAggregateOutputType = {
   id: string | null
+  version: number | null
   studentId: string | null
   classId: string | null
   semesterId: string | null
@@ -83,6 +86,7 @@ export type EvaluationFormMinAggregateOutputType = {
 
 export type EvaluationFormMaxAggregateOutputType = {
   id: string | null
+  version: number | null
   studentId: string | null
   classId: string | null
   semesterId: string | null
@@ -114,6 +118,7 @@ export type EvaluationFormMaxAggregateOutputType = {
 
 export type EvaluationFormCountAggregateOutputType = {
   id: number
+  version: number
   studentId: number
   classId: number
   semesterId: number
@@ -151,6 +156,7 @@ export type EvaluationFormCountAggregateOutputType = {
 
 
 export type EvaluationFormAvgAggregateInputType = {
+  version?: true
   studentScore?: true
   classScore?: true
   finalScore?: true
@@ -163,6 +169,7 @@ export type EvaluationFormAvgAggregateInputType = {
 }
 
 export type EvaluationFormSumAggregateInputType = {
+  version?: true
   studentScore?: true
   classScore?: true
   finalScore?: true
@@ -176,6 +183,7 @@ export type EvaluationFormSumAggregateInputType = {
 
 export type EvaluationFormMinAggregateInputType = {
   id?: true
+  version?: true
   studentId?: true
   classId?: true
   semesterId?: true
@@ -207,6 +215,7 @@ export type EvaluationFormMinAggregateInputType = {
 
 export type EvaluationFormMaxAggregateInputType = {
   id?: true
+  version?: true
   studentId?: true
   classId?: true
   semesterId?: true
@@ -238,6 +247,7 @@ export type EvaluationFormMaxAggregateInputType = {
 
 export type EvaluationFormCountAggregateInputType = {
   id?: true
+  version?: true
   studentId?: true
   classId?: true
   semesterId?: true
@@ -361,6 +371,7 @@ export type EvaluationFormGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
 
 export type EvaluationFormGroupByOutputType = {
   id: string
+  version: number
   studentId: string
   classId: string
   semesterId: string
@@ -420,6 +431,7 @@ export type EvaluationFormWhereInput = {
   OR?: Prisma.EvaluationFormWhereInput[]
   NOT?: Prisma.EvaluationFormWhereInput | Prisma.EvaluationFormWhereInput[]
   id?: Prisma.UuidFilter<"EvaluationForm"> | string
+  version?: Prisma.IntFilter<"EvaluationForm"> | number
   studentId?: Prisma.UuidFilter<"EvaluationForm"> | string
   classId?: Prisma.UuidFilter<"EvaluationForm"> | string
   semesterId?: Prisma.UuidFilter<"EvaluationForm"> | string
@@ -465,6 +477,7 @@ export type EvaluationFormWhereInput = {
 
 export type EvaluationFormOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  version?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   classId?: Prisma.SortOrder
   semesterId?: Prisma.SortOrder
@@ -514,6 +527,7 @@ export type EvaluationFormWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.EvaluationFormWhereInput | Prisma.EvaluationFormWhereInput[]
   OR?: Prisma.EvaluationFormWhereInput[]
   NOT?: Prisma.EvaluationFormWhereInput | Prisma.EvaluationFormWhereInput[]
+  version?: Prisma.IntFilter<"EvaluationForm"> | number
   studentId?: Prisma.UuidFilter<"EvaluationForm"> | string
   classId?: Prisma.UuidFilter<"EvaluationForm"> | string
   semesterId?: Prisma.UuidFilter<"EvaluationForm"> | string
@@ -559,6 +573,7 @@ export type EvaluationFormWhereUniqueInput = Prisma.AtLeast<{
 
 export type EvaluationFormOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  version?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   classId?: Prisma.SortOrder
   semesterId?: Prisma.SortOrder
@@ -603,6 +618,7 @@ export type EvaluationFormScalarWhereWithAggregatesInput = {
   OR?: Prisma.EvaluationFormScalarWhereWithAggregatesInput[]
   NOT?: Prisma.EvaluationFormScalarWhereWithAggregatesInput | Prisma.EvaluationFormScalarWhereWithAggregatesInput[]
   id?: Prisma.UuidWithAggregatesFilter<"EvaluationForm"> | string
+  version?: Prisma.IntWithAggregatesFilter<"EvaluationForm"> | number
   studentId?: Prisma.UuidWithAggregatesFilter<"EvaluationForm"> | string
   classId?: Prisma.UuidWithAggregatesFilter<"EvaluationForm"> | string
   semesterId?: Prisma.UuidWithAggregatesFilter<"EvaluationForm"> | string
@@ -639,6 +655,7 @@ export type EvaluationFormScalarWhereWithAggregatesInput = {
 
 export type EvaluationFormCreateInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -678,6 +695,7 @@ export type EvaluationFormCreateInput = {
 
 export type EvaluationFormUncheckedCreateInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -717,6 +735,7 @@ export type EvaluationFormUncheckedCreateInput = {
 
 export type EvaluationFormUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -756,6 +775,7 @@ export type EvaluationFormUpdateInput = {
 
 export type EvaluationFormUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -795,6 +815,7 @@ export type EvaluationFormUncheckedUpdateInput = {
 
 export type EvaluationFormCreateManyInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -831,6 +852,7 @@ export type EvaluationFormCreateManyInput = {
 
 export type EvaluationFormUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -861,6 +883,7 @@ export type EvaluationFormUpdateManyMutationInput = {
 
 export type EvaluationFormUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -912,6 +935,7 @@ export type EvaluationFormStudentIdSemesterIdCompoundUniqueInput = {
 
 export type EvaluationFormCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  version?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   classId?: Prisma.SortOrder
   semesterId?: Prisma.SortOrder
@@ -947,6 +971,7 @@ export type EvaluationFormCountOrderByAggregateInput = {
 }
 
 export type EvaluationFormAvgOrderByAggregateInput = {
+  version?: Prisma.SortOrder
   studentScore?: Prisma.SortOrder
   classScore?: Prisma.SortOrder
   finalScore?: Prisma.SortOrder
@@ -960,6 +985,7 @@ export type EvaluationFormAvgOrderByAggregateInput = {
 
 export type EvaluationFormMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  version?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   classId?: Prisma.SortOrder
   semesterId?: Prisma.SortOrder
@@ -991,6 +1017,7 @@ export type EvaluationFormMaxOrderByAggregateInput = {
 
 export type EvaluationFormMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  version?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   classId?: Prisma.SortOrder
   semesterId?: Prisma.SortOrder
@@ -1021,6 +1048,7 @@ export type EvaluationFormMinOrderByAggregateInput = {
 }
 
 export type EvaluationFormSumOrderByAggregateInput = {
+  version?: Prisma.SortOrder
   studentScore?: Prisma.SortOrder
   classScore?: Prisma.SortOrder
   finalScore?: Prisma.SortOrder
@@ -1349,6 +1377,7 @@ export type EvaluationFormUpdateOneRequiredWithoutEvidencesNestedInput = {
 
 export type EvaluationFormCreateWithoutStudentInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -1387,6 +1416,7 @@ export type EvaluationFormCreateWithoutStudentInput = {
 
 export type EvaluationFormUncheckedCreateWithoutStudentInput = {
   id?: string
+  version?: number
   classId: string
   semesterId: string
   status?: $Enums.FormStatus
@@ -1435,6 +1465,7 @@ export type EvaluationFormCreateManyStudentInputEnvelope = {
 
 export type EvaluationFormCreateWithoutClassLeaderReviewerInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -1473,6 +1504,7 @@ export type EvaluationFormCreateWithoutClassLeaderReviewerInput = {
 
 export type EvaluationFormUncheckedCreateWithoutClassLeaderReviewerInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -1521,6 +1553,7 @@ export type EvaluationFormCreateManyClassLeaderReviewerInputEnvelope = {
 
 export type EvaluationFormCreateWithoutClassReviewerInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -1559,6 +1592,7 @@ export type EvaluationFormCreateWithoutClassReviewerInput = {
 
 export type EvaluationFormUncheckedCreateWithoutClassReviewerInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -1607,6 +1641,7 @@ export type EvaluationFormCreateManyClassReviewerInputEnvelope = {
 
 export type EvaluationFormCreateWithoutAdminFinalizerInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -1645,6 +1680,7 @@ export type EvaluationFormCreateWithoutAdminFinalizerInput = {
 
 export type EvaluationFormUncheckedCreateWithoutAdminFinalizerInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -1712,6 +1748,7 @@ export type EvaluationFormScalarWhereInput = {
   OR?: Prisma.EvaluationFormScalarWhereInput[]
   NOT?: Prisma.EvaluationFormScalarWhereInput | Prisma.EvaluationFormScalarWhereInput[]
   id?: Prisma.UuidFilter<"EvaluationForm"> | string
+  version?: Prisma.IntFilter<"EvaluationForm"> | number
   studentId?: Prisma.UuidFilter<"EvaluationForm"> | string
   classId?: Prisma.UuidFilter<"EvaluationForm"> | string
   semesterId?: Prisma.UuidFilter<"EvaluationForm"> | string
@@ -1796,6 +1833,7 @@ export type EvaluationFormUpdateManyWithWhereWithoutAdminFinalizerInput = {
 
 export type EvaluationFormCreateWithoutClassInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -1834,6 +1872,7 @@ export type EvaluationFormCreateWithoutClassInput = {
 
 export type EvaluationFormUncheckedCreateWithoutClassInput = {
   id?: string
+  version?: number
   studentId: string
   semesterId: string
   status?: $Enums.FormStatus
@@ -1898,6 +1937,7 @@ export type EvaluationFormUpdateManyWithWhereWithoutClassInput = {
 
 export type EvaluationFormCreateWithoutSemesterInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -1936,6 +1976,7 @@ export type EvaluationFormCreateWithoutSemesterInput = {
 
 export type EvaluationFormUncheckedCreateWithoutSemesterInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   status?: $Enums.FormStatus
@@ -2000,6 +2041,7 @@ export type EvaluationFormUpdateManyWithWhereWithoutSemesterInput = {
 
 export type EvaluationFormCreateWithoutCriteriaScoresInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -2038,6 +2080,7 @@ export type EvaluationFormCreateWithoutCriteriaScoresInput = {
 
 export type EvaluationFormUncheckedCreateWithoutCriteriaScoresInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -2092,6 +2135,7 @@ export type EvaluationFormUpdateToOneWithWhereWithoutCriteriaScoresInput = {
 
 export type EvaluationFormUpdateWithoutCriteriaScoresInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -2130,6 +2174,7 @@ export type EvaluationFormUpdateWithoutCriteriaScoresInput = {
 
 export type EvaluationFormUncheckedUpdateWithoutCriteriaScoresInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2168,6 +2213,7 @@ export type EvaluationFormUncheckedUpdateWithoutCriteriaScoresInput = {
 
 export type EvaluationFormCreateWithoutAttachmentsInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -2206,6 +2252,7 @@ export type EvaluationFormCreateWithoutAttachmentsInput = {
 
 export type EvaluationFormUncheckedCreateWithoutAttachmentsInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -2260,6 +2307,7 @@ export type EvaluationFormUpdateToOneWithWhereWithoutAttachmentsInput = {
 
 export type EvaluationFormUpdateWithoutAttachmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -2298,6 +2346,7 @@ export type EvaluationFormUpdateWithoutAttachmentsInput = {
 
 export type EvaluationFormUncheckedUpdateWithoutAttachmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2336,6 +2385,7 @@ export type EvaluationFormUncheckedUpdateWithoutAttachmentsInput = {
 
 export type EvaluationFormCreateWithoutEvidencesInput = {
   id?: string
+  version?: number
   status?: $Enums.FormStatus
   studentScore?: number | null
   classScore?: number | null
@@ -2374,6 +2424,7 @@ export type EvaluationFormCreateWithoutEvidencesInput = {
 
 export type EvaluationFormUncheckedCreateWithoutEvidencesInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -2428,6 +2479,7 @@ export type EvaluationFormUpdateToOneWithWhereWithoutEvidencesInput = {
 
 export type EvaluationFormUpdateWithoutEvidencesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -2466,6 +2518,7 @@ export type EvaluationFormUpdateWithoutEvidencesInput = {
 
 export type EvaluationFormUncheckedUpdateWithoutEvidencesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2504,6 +2557,7 @@ export type EvaluationFormUncheckedUpdateWithoutEvidencesInput = {
 
 export type EvaluationFormCreateManyStudentInput = {
   id?: string
+  version?: number
   classId: string
   semesterId: string
   status?: $Enums.FormStatus
@@ -2539,6 +2593,7 @@ export type EvaluationFormCreateManyStudentInput = {
 
 export type EvaluationFormCreateManyClassLeaderReviewerInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -2574,6 +2629,7 @@ export type EvaluationFormCreateManyClassLeaderReviewerInput = {
 
 export type EvaluationFormCreateManyClassReviewerInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -2609,6 +2665,7 @@ export type EvaluationFormCreateManyClassReviewerInput = {
 
 export type EvaluationFormCreateManyAdminFinalizerInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   semesterId: string
@@ -2644,6 +2701,7 @@ export type EvaluationFormCreateManyAdminFinalizerInput = {
 
 export type EvaluationFormUpdateWithoutStudentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -2682,6 +2740,7 @@ export type EvaluationFormUpdateWithoutStudentInput = {
 
 export type EvaluationFormUncheckedUpdateWithoutStudentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
@@ -2720,6 +2779,7 @@ export type EvaluationFormUncheckedUpdateWithoutStudentInput = {
 
 export type EvaluationFormUncheckedUpdateManyWithoutStudentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
@@ -2755,6 +2815,7 @@ export type EvaluationFormUncheckedUpdateManyWithoutStudentInput = {
 
 export type EvaluationFormUpdateWithoutClassLeaderReviewerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -2793,6 +2854,7 @@ export type EvaluationFormUpdateWithoutClassLeaderReviewerInput = {
 
 export type EvaluationFormUncheckedUpdateWithoutClassLeaderReviewerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2831,6 +2893,7 @@ export type EvaluationFormUncheckedUpdateWithoutClassLeaderReviewerInput = {
 
 export type EvaluationFormUncheckedUpdateManyWithoutClassLeaderReviewerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2866,6 +2929,7 @@ export type EvaluationFormUncheckedUpdateManyWithoutClassLeaderReviewerInput = {
 
 export type EvaluationFormUpdateWithoutClassReviewerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -2904,6 +2968,7 @@ export type EvaluationFormUpdateWithoutClassReviewerInput = {
 
 export type EvaluationFormUncheckedUpdateWithoutClassReviewerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2942,6 +3007,7 @@ export type EvaluationFormUncheckedUpdateWithoutClassReviewerInput = {
 
 export type EvaluationFormUncheckedUpdateManyWithoutClassReviewerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2977,6 +3043,7 @@ export type EvaluationFormUncheckedUpdateManyWithoutClassReviewerInput = {
 
 export type EvaluationFormUpdateWithoutAdminFinalizerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -3015,6 +3082,7 @@ export type EvaluationFormUpdateWithoutAdminFinalizerInput = {
 
 export type EvaluationFormUncheckedUpdateWithoutAdminFinalizerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3053,6 +3121,7 @@ export type EvaluationFormUncheckedUpdateWithoutAdminFinalizerInput = {
 
 export type EvaluationFormUncheckedUpdateManyWithoutAdminFinalizerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3088,6 +3157,7 @@ export type EvaluationFormUncheckedUpdateManyWithoutAdminFinalizerInput = {
 
 export type EvaluationFormCreateManyClassInput = {
   id?: string
+  version?: number
   studentId: string
   semesterId: string
   status?: $Enums.FormStatus
@@ -3123,6 +3193,7 @@ export type EvaluationFormCreateManyClassInput = {
 
 export type EvaluationFormUpdateWithoutClassInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -3161,6 +3232,7 @@ export type EvaluationFormUpdateWithoutClassInput = {
 
 export type EvaluationFormUncheckedUpdateWithoutClassInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
@@ -3199,6 +3271,7 @@ export type EvaluationFormUncheckedUpdateWithoutClassInput = {
 
 export type EvaluationFormUncheckedUpdateManyWithoutClassInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   semesterId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
@@ -3234,6 +3307,7 @@ export type EvaluationFormUncheckedUpdateManyWithoutClassInput = {
 
 export type EvaluationFormCreateManySemesterInput = {
   id?: string
+  version?: number
   studentId: string
   classId: string
   status?: $Enums.FormStatus
@@ -3269,6 +3343,7 @@ export type EvaluationFormCreateManySemesterInput = {
 
 export type EvaluationFormUpdateWithoutSemesterInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
   studentScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   classScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -3307,6 +3382,7 @@ export type EvaluationFormUpdateWithoutSemesterInput = {
 
 export type EvaluationFormUncheckedUpdateWithoutSemesterInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
@@ -3345,6 +3421,7 @@ export type EvaluationFormUncheckedUpdateWithoutSemesterInput = {
 
 export type EvaluationFormUncheckedUpdateManyWithoutSemesterInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  version?: Prisma.IntFieldUpdateOperationsInput | number
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   classId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumFormStatusFieldUpdateOperationsInput | $Enums.FormStatus
@@ -3429,6 +3506,7 @@ export type EvaluationFormCountOutputTypeCountEvidencesArgs<ExtArgs extends runt
 
 export type EvaluationFormSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  version?: boolean
   studentId?: boolean
   classId?: boolean
   semesterId?: boolean
@@ -3475,6 +3553,7 @@ export type EvaluationFormSelect<ExtArgs extends runtime.Types.Extensions.Intern
 
 export type EvaluationFormSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  version?: boolean
   studentId?: boolean
   classId?: boolean
   semesterId?: boolean
@@ -3517,6 +3596,7 @@ export type EvaluationFormSelectCreateManyAndReturn<ExtArgs extends runtime.Type
 
 export type EvaluationFormSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  version?: boolean
   studentId?: boolean
   classId?: boolean
   semesterId?: boolean
@@ -3559,6 +3639,7 @@ export type EvaluationFormSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
 
 export type EvaluationFormSelectScalar = {
   id?: boolean
+  version?: boolean
   studentId?: boolean
   classId?: boolean
   semesterId?: boolean
@@ -3593,7 +3674,7 @@ export type EvaluationFormSelectScalar = {
   updatedAt?: boolean
 }
 
-export type EvaluationFormOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "studentId" | "classId" | "semesterId" | "status" | "studentScore" | "classScore" | "finalScore" | "rank" | "note" | "studyScore" | "studyData" | "disciplineBaseScore" | "disciplineScore" | "disciplineData" | "activityScore" | "activityData" | "communityScore" | "communityData" | "roleScore" | "roleData" | "classLeaderReviewedBy" | "classReviewedBy" | "adminFinalizedBy" | "classLeaderReviewedAt" | "classReviewedAt" | "adminFinalizedAt" | "submittedAt" | "isLocked" | "lockedAt" | "lockedBy" | "createdAt" | "updatedAt", ExtArgs["result"]["evaluationForm"]>
+export type EvaluationFormOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "version" | "studentId" | "classId" | "semesterId" | "status" | "studentScore" | "classScore" | "finalScore" | "rank" | "note" | "studyScore" | "studyData" | "disciplineBaseScore" | "disciplineScore" | "disciplineData" | "activityScore" | "activityData" | "communityScore" | "communityData" | "roleScore" | "roleData" | "classLeaderReviewedBy" | "classReviewedBy" | "adminFinalizedBy" | "classLeaderReviewedAt" | "classReviewedAt" | "adminFinalizedAt" | "submittedAt" | "isLocked" | "lockedAt" | "lockedBy" | "createdAt" | "updatedAt", ExtArgs["result"]["evaluationForm"]>
 export type EvaluationFormInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   student?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   class?: boolean | Prisma.ClassDefaultArgs<ExtArgs>
@@ -3638,6 +3719,7 @@ export type $EvaluationFormPayload<ExtArgs extends runtime.Types.Extensions.Inte
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    version: number
     studentId: string
     classId: string
     semesterId: string
@@ -4103,6 +4185,7 @@ export interface Prisma__EvaluationFormClient<T, Null = never, ExtArgs extends r
  */
 export interface EvaluationFormFieldRefs {
   readonly id: Prisma.FieldRef<"EvaluationForm", 'String'>
+  readonly version: Prisma.FieldRef<"EvaluationForm", 'Int'>
   readonly studentId: Prisma.FieldRef<"EvaluationForm", 'String'>
   readonly classId: Prisma.FieldRef<"EvaluationForm", 'String'>
   readonly semesterId: Prisma.FieldRef<"EvaluationForm", 'String'>

@@ -67,7 +67,8 @@ export const ModelName = {
   FormCriteriaScore: 'FormCriteriaScore',
   FormAttachment: 'FormAttachment',
   Evidence: 'Evidence',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  OperationReceipt: 'OperationReceipt'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -252,6 +253,7 @@ export type EvaluationCriteriaScalarFieldEnum = (typeof EvaluationCriteriaScalar
 
 export const EvaluationFormScalarFieldEnum = {
   id: 'id',
+  version: 'version',
   studentId: 'studentId',
   classId: 'classId',
   semesterId: 'semesterId',
@@ -334,6 +336,7 @@ export type EvidenceScalarFieldEnum = (typeof EvidenceScalarFieldEnum)[keyof typ
 
 
 export const NotificationScalarFieldEnum = {
+  dedupeKey: 'dedupeKey',
   id: 'id',
   userId: 'userId',
   type: 'type',
@@ -344,6 +347,16 @@ export const NotificationScalarFieldEnum = {
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const OperationReceiptScalarFieldEnum = {
+  scope: 'scope',
+  requestHash: 'requestHash',
+  response: 'response',
+  createdAt: 'createdAt'
+} as const
+
+export type OperationReceiptScalarFieldEnum = (typeof OperationReceiptScalarFieldEnum)[keyof typeof OperationReceiptScalarFieldEnum]
 
 
 export const SortOrder = {
