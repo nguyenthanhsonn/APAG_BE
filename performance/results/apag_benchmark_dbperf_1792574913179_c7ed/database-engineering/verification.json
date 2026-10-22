@@ -1,0 +1,34 @@
+{
+  "synthetic": true,
+  "databaseName": "apag_benchmark_dbperf_1792574913179_c7ed",
+  "checkedAt": "2026-10-21T09:50:49.509Z",
+  "checks": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "build": "passed",
+    "unit": {
+      "suites": 26,
+      "tests": 317,
+      "status": "passed"
+    },
+    "redisRealtimeQueue": {
+      "checks": 45,
+      "status": "passed",
+      "isolatedResources": true
+    },
+    "artifacts": {
+      "cases": 21,
+      "candidates": 6,
+      "status": "passed"
+    },
+    "migrations": {
+      "concurrentDeploy": "passed",
+      "tunedSourceBaselineReplay": "passed"
+    },
+    "dashboard": {
+      "json": "valid",
+      "poolPercentile": "per instance"
+    },
+    "diffWhitespace": "passed"
+  }
+}

@@ -1,3 +1,4 @@
+import { ExpectedVersionDto } from './expected-version.dto';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -29,7 +30,7 @@ export class DisciplineViolationDto {
   deductScore: number;
 }
 
-export class UpdateDisciplineScoreDto {
+export class UpdateDisciplineScoreDto extends ExpectedVersionDto {
   @IsInt()
   @Min(0)
   @Max(25)

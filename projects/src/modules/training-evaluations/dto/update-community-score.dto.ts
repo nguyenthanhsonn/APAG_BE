@@ -1,3 +1,4 @@
+import { ExpectedVersionDto } from './expected-version.dto';
 import { IsIn } from 'class-validator';
 
 export const LAW_COMPLIANCE_LEVELS = [
@@ -24,7 +25,7 @@ export const COMMUNITY_RELATIONSHIP_LEVELS = [
 export type CommunityRelationshipLevel =
   (typeof COMMUNITY_RELATIONSHIP_LEVELS)[number];
 
-export class UpdateCommunityScoreDto {
+export class UpdateCommunityScoreDto extends ExpectedVersionDto {
   @IsIn(LAW_COMPLIANCE_LEVELS)
   lawComplianceLevel: LawComplianceLevel;
 

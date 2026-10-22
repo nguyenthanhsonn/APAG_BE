@@ -1,0 +1,131 @@
+{
+  "runId": "2026-10-21T025924566Z",
+  "startedAt": "2026-10-21T02:59:24.572Z",
+  "synthetic": true,
+  "databaseName": "apag_benchmark_20261021_69a289",
+  "sourceSha256": "2f0b2025b45455b0f5d956b657e8e0851b7651d8fe7440927b23b84a82fa314e",
+  "gitHead": "4876b15aa63e8b79945aae626bd6fc3b0be53d5b",
+  "dirtyWorktree": true,
+  "node": "v24.20.0",
+  "k6": "k6 v2.3.0 (commit/e088784614, go1.26.8, darwin/arm64)",
+  "platform": "darwin 25.6.0 arm64",
+  "cpu": "Apple M4",
+  "logicalCpus": 10,
+  "memoryBytes": 17179869184,
+  "loadAverageAtStart": [
+    2.7080078125,
+    2.3525390625,
+    2.84619140625
+  ],
+  "dataset": {
+    "users": 10492,
+    "faculties": 10,
+    "majors": 20,
+    "classes": 400,
+    "class_students": 10000,
+    "semesters": 3,
+    "evaluation_forms": 30000,
+    "form_criteria_scores": 300000,
+    "evidences": 10002,
+    "notifications": 10000
+  },
+  "postgres": {
+    "postgres": "PostgreSQL 17.9 on x86_64-apple-darwin24.6.0, compiled by Apple clang version 17.0.0 (clang-1700.6.3.2), 64-bit",
+    "bytes": "97810099",
+    "max_connections": "100"
+  },
+  "settings": {
+    "durationSeconds": 30,
+    "warmupSeconds": 5,
+    "thinkTimeSeconds": 0.1,
+    "model": "closed constant-vus",
+    "tracing": false,
+    "logging": "info JSON to file",
+    "poolMax": "pg default 10",
+    "uvThreadpoolSize": "default 4",
+    "backendPort": 51030,
+    "resourceIntervalSeconds": 1
+  },
+  "cases": [
+    {
+      "name": "login_50",
+      "mode": "login",
+      "vus": 50
+    },
+    {
+      "name": "login_100",
+      "mode": "login",
+      "vus": 100
+    },
+    {
+      "name": "login_200",
+      "mode": "login",
+      "vus": 200
+    },
+    {
+      "name": "evaluations_semester",
+      "mode": "evaluations_semester",
+      "vus": 50
+    },
+    {
+      "name": "evaluations_class",
+      "mode": "evaluations_class",
+      "vus": 50
+    },
+    {
+      "name": "evaluations_faculty",
+      "mode": "evaluations_faculty",
+      "vus": 50
+    },
+    {
+      "name": "evaluations_status",
+      "mode": "evaluations_status",
+      "vus": 50
+    },
+    {
+      "name": "evaluations_keyword",
+      "mode": "evaluations_keyword",
+      "vus": 50
+    },
+    {
+      "name": "evaluations_combined",
+      "mode": "evaluations_combined",
+      "vus": 50
+    },
+    {
+      "name": "write",
+      "mode": "write",
+      "vus": 50
+    },
+    {
+      "name": "conflict",
+      "mode": "conflict",
+      "vus": 20
+    },
+    {
+      "name": "reports_overview",
+      "mode": "reports_overview",
+      "vus": 20
+    },
+    {
+      "name": "reports_training_results",
+      "mode": "reports_training_results",
+      "vus": 20
+    },
+    {
+      "name": "reports_by_class",
+      "mode": "reports_by_class",
+      "vus": 20
+    },
+    {
+      "name": "reports_by_faculty",
+      "mode": "reports_by_faculty",
+      "vus": 20
+    },
+    {
+      "name": "export",
+      "mode": "export",
+      "vus": 5
+    }
+  ]
+}

@@ -30,6 +30,7 @@ export type ImportClassStudentsResult = {
     fullName: string;
   }>;
   emailSentCount: number;
+  emailQueuedCount: number;
   emailFailedCount: number;
   emailErrors: Array<{
     email: string;

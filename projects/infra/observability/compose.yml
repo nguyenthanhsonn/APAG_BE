@@ -1,0 +1,48 @@
+# Standalone tools for a backend running on the host; does not start/migrate any application DB.
+services:
+  prometheus:
+    image: prom/prometheus:v3.6.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d", "--enable-feature=exemplar-storage"]
+    ports: ["127.0.0.1:9090:9090"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    secrets: [metrics_token]
+    restart: unless-stopped
+  tempo:
+    image: grafana/tempo:2.9.0
+    command: ["-config.file=/etc/tempo.yml"]
+    volumes:
+      - ./tempo.yml:/etc/tempo.yml:ro
+      - tempo-data:/var/tempo
+    ports: ["127.0.0.1:3200:3200"]
+    restart: unless-stopped
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.136.0
+    command: ["--config=/etc/collector.yml"]
+    volumes: ["./collector.yml:/etc/collector.yml:ro"]
+    ports: ["127.0.0.1:4318:4318"]
+    depends_on: [tempo]
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana:12.2.0
+    ports: ["127.0.0.1:3300:3000"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD before starting Grafana}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus, tempo]
+    restart: unless-stopped
+secrets:
+  metrics_token:
+    environment: METRICS_TOKEN
+volumes:
+  prometheus-data:
+  tempo-data:
+  grafana-data:

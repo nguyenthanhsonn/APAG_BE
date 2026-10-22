@@ -1,3 +1,4 @@
+import { ProfileCacheService } from '../../infrastructure/cache/profile-cache.service';
 import {
   BadRequestException,
   Injectable,
@@ -14,22 +15,27 @@ import { profileSelect } from './selects/profile.select';
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly profiles: ProfileCacheService,
+  ) {}
 
   async getProfile(userId: string): Promise<ProfileResponse> {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        id: userId,
-        deletedAt: null,
-      },
-      select: profileSelect,
+    return this.profiles.getOrLoad(userId, 'personal', async () => {
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        select: profileSelect,
+      });
+
+      if (!user) {
+        throw new NotFoundException('Không tìm thấy thông tin cá nhân');
+      }
+
+      return mapToProfileResponse(user);
     });
-
-    if (!user) {
-      throw new NotFoundException('Không tìm thấy thông tin cá nhân');
-    }
-
-    return mapToProfileResponse(user);
   }
 
   async updateProfile(
@@ -53,6 +59,7 @@ export class ProfileService {
         select: profileSelect,
       });
 
+      await this.profiles.invalidate(userId);
       return mapToProfileResponse(user);
     } catch (error) {
       if (

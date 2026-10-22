@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Headers, HttpCode, Param } from '@nestjs/common';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ReportJobsService } from './report-jobs.service';
+import { CreateReportExportDto } from './dto/create-report-export.dto';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { UserRole } from 'src/common/shared';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -32,15 +44,50 @@ import {
 export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,
+    private readonly exportJobs: ReportJobsService,
     private readonly pdfExportService: PdfReportExportService,
     private readonly bbHopLopExportService: BbHopLopExportService,
     private readonly bbHopKhoaExportService: BbHopKhoaExportService,
     private readonly bbHopKhoaDocxExportService: BbHopKhoaDocxExportService,
   ) {}
 
+  @Post('exports')
+  @HttpCode(202)
+  @ApiResponse({
+    status: 202,
+    description: 'Đã nhận yêu cầu tạo file; poll statusUrl để theo dõi.',
+  })
+  createExport(
+    @CurrentUser('id') userId: string,
+    @Body() body: CreateReportExportDto,
+    @Headers('Idempotency-Key') key?: string,
+  ) {
+    return this.exportJobs.create(userId, body, key);
+  }
+
+  @Get('exports/:jobId')
+  exportStatus(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    return this.exportJobs.status(userId, jobId);
+  }
+
+  @Get('exports/:jobId/download')
+  async downloadExport(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @Res() res: Response,
+  ) {
+    const file = await this.exportJobs.download(userId, jobId);
+    res.setHeader('Cache-Control', 'private, no-store');
+    this.sendFileResponse(res, file.buffer, file.fileName, file.contentType);
+  }
+
   @ApiOperation({
     summary: 'Lấy dữ liệu',
-    description: 'Endpoint GET overview trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
+    description:
+      'Endpoint GET overview trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
   })
   @ApiResponse({ status: 200, description: 'Thao tác thành công.' })
   @Get('overview')
@@ -50,7 +97,8 @@ export class ReportsController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu',
-    description: 'Endpoint GET training-results trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
+    description:
+      'Endpoint GET training-results trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
   })
   @ApiResponse({ status: 200, description: 'Thao tác thành công.' })
   @Get('training-results')
@@ -60,7 +108,8 @@ export class ReportsController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu',
-    description: 'Endpoint GET by-class trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
+    description:
+      'Endpoint GET by-class trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
   })
   @ApiResponse({ status: 200, description: 'Thao tác thành công.' })
   @Get('by-class')
@@ -70,7 +119,8 @@ export class ReportsController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu',
-    description: 'Endpoint GET by-faculty trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
+    description:
+      'Endpoint GET by-faculty trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
   })
   @ApiResponse({ status: 200, description: 'Thao tác thành công.' })
   @Get('by-faculty')
@@ -81,7 +131,8 @@ export class ReportsController {
   /** Xuất file PDF — dùng @Res() để tránh ResponseInterceptor bọc JSON làm hỏng file. */
   @ApiOperation({
     summary: 'Lấy dữ liệu',
-    description: 'Endpoint GET export-pdf trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
+    description:
+      'Endpoint GET export-pdf trong nhóm Admin Reports; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
   })
   @ApiResponse({ status: 200, description: 'Thao tác thành công.' })
   @Get('export-pdf')
@@ -89,8 +140,16 @@ export class ReportsController {
     @Query() query: ReportsExportQueryDto,
     @Res() res: Response,
   ): Promise<void> {
-    const rows = await this.reportsService.getExportRows(query);
-    this.pdfExportService.streamToResponse(rows, res, this.buildFileName(query, 'pdf'));
+    const rows = await this.reportsService.getExportRows(query, 501);
+    if (rows.length > 500)
+      throw new BadRequestException(
+        'Export lớn cần dùng POST /reports/exports',
+      );
+    this.pdfExportService.streamToResponse(
+      rows,
+      res,
+      this.buildFileName(query, 'pdf'),
+    );
   }
 
   /** Xuất biên bản họp khoa từ dữ liệu FE gửi lên và template Excel có sẵn. */
@@ -108,10 +167,7 @@ export class ReportsController {
   ): Promise<void> {
     const info = this.normalizeBbHopKhoaInfo(body);
     const students = body.students ?? [];
-    const buffer = await this.bbHopKhoaExportService.export(
-      info,
-      students,
-    );
+    const buffer = await this.bbHopKhoaExportService.export(info, students);
     const fileName = this.buildBbHopKhoaFileName(info.tenLop, 'xlsx');
 
     this.sendFileResponse(
@@ -137,11 +193,7 @@ export class ReportsController {
   ): Promise<void> {
     const info = this.normalizeBbHopKhoaInfo(body);
     const students = body.students ?? [];
-    const buffer = this.bbHopKhoaDocxExportService.export(
-      info,
-      students,
-      body,
-    );
+    const buffer = this.bbHopKhoaDocxExportService.export(info, students, body);
     const fileName = this.buildBbHopKhoaFileName(info.tenLop, 'docx');
 
     this.sendFileResponse(
@@ -175,10 +227,15 @@ export class ReportsController {
     );
   }
 
-  private buildFileName(query: ReportsExportQueryDto, extension: string): string {
-    const parts = ['ket-qua-ren-luyen', query.academicYear, query.semester].filter(
-      Boolean,
-    );
+  private buildFileName(
+    query: ReportsExportQueryDto,
+    extension: string,
+  ): string {
+    const parts = [
+      'ket-qua-ren-luyen',
+      query.academicYear,
+      query.semester,
+    ].filter(Boolean);
 
     return `${parts.join('-')}.${extension}`;
   }

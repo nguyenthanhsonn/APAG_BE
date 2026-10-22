@@ -170,10 +170,14 @@ export class AdminClassCatalogRepository {
     });
   }
 
-  async replaceClassLeaders(
-    classId: string,
-    userIds: string[],
-  ): Promise<void> {
+  findClassLeadersAssignedElsewhere(classId: string, userIds: string[]) {
+    return this.prisma.classLeaderAssignment.findMany({
+      where: { userId: { in: userIds }, classId: { not: classId } },
+      select: { userId: true },
+    });
+  }
+
+  async replaceClassLeaders(classId: string, userIds: string[]): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.classLeaderAssignment.deleteMany({ where: { classId } });
 

@@ -1,0 +1,22 @@
+{
+  "capturedAt": "2026-10-21T03:10:10.901Z",
+  "compiledBackend": {
+    "sha256": "187264338a8630e94cb9cfcca13c5da522a4dddb4dc2370bc26120d2acd906c6",
+    "files": 252
+  },
+  "k6Scripts": {
+    "sha256": "d7ad88f1c354629c15237bcc02d9b984fe4354be4fd69b97670a8a7e289bc0ed",
+    "files": 6
+  },
+  "dependencies": {
+    "@nestjs/core": "11.1.27",
+    "@prisma/client": "7.10.1",
+    "@prisma/adapter-pg": "7.10.1",
+    "pg": "8.22.0",
+    "bcrypt": "6.0.0",
+    "pino": "10.4.0",
+    "@prometheus-io/client": "0.16.1"
+  },
+  "timing": "after run, before any rebuild",
+  "note": "Backend dist and k6 JS files were unchanged throughout this run; package script registrations and reporting helpers were completed separately."
+}

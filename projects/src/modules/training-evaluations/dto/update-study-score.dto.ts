@@ -1,3 +1,4 @@
+import { ExpectedVersionDto } from './expected-version.dto';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -51,7 +52,7 @@ export class StudyActivityDto {
   score?: number;
 }
 
-export class UpdateStudyScoreDto {
+export class UpdateStudyScoreDto extends ExpectedVersionDto {
   @IsIn(REGULAR_SCORE_LEVELS)
   regularScoreLevel: RegularScoreLevel;
 

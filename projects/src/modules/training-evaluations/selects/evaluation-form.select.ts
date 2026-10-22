@@ -1,8 +1,22 @@
 import { Prisma } from '../../../generated/prisma/client';
 
+// Mốc hạn chỉ dùng nội bộ policy; mapper tiếp tục giữ hợp đồng response hiện có.
+export const evaluationDeadlineSelect = {
+  studentDeadline: true,
+  classDeadline: true,
+  facultyDeadline: true,
+} satisfies Prisma.SemesterSelect;
+const evaluationSemesterSelect = {
+  year: true,
+  semester: true,
+  isActive: true,
+  ...evaluationDeadlineSelect,
+} satisfies Prisma.SemesterSelect;
+
 // ─── Shared base cho section scores ──────────────────────────────────────────
 const sectionBase = {
   id: true,
+  version: true,
   studentScore: true,
   rank: true,
 } satisfies Prisma.EvaluationFormSelect;
@@ -10,6 +24,7 @@ const sectionBase = {
 // ─── Dùng bởi tất cả update-score methods để fetch current scores ─────────────
 export const evaluationAllScoresSelect = {
   id: true,
+  version: true,
   status: true,
   studyScore: true,
   disciplineScore: true,
@@ -21,6 +36,7 @@ export const evaluationAllScoresSelect = {
 // ─── GET /me – danh sách phiếu ────────────────────────────────────────────────
 export const evaluationListSelect = {
   id: true,
+  version: true,
   studentId: true,
   status: true,
   isLocked: true,
@@ -28,7 +44,7 @@ export const evaluationListSelect = {
   studentScore: true,
   rank: true,
   updatedAt: true,
-  semester: { select: { year: true, semester: true, isActive: true } },
+  semester: { select: evaluationSemesterSelect },
 } satisfies Prisma.EvaluationFormSelect;
 
 // ─── GET /:id – chi tiết phiếu ────────────────────────────────────────────────
@@ -89,6 +105,7 @@ export const evaluationDetailSelect = {
 // ─── GET /admin/training-evaluations – danh sách cho admin (đa lớp/khoa) ──────
 export const evaluationAdminListSelect = {
   id: true,
+  version: true,
   status: true,
   submittedAt: true,
   classLeaderReviewedAt: true,
@@ -103,15 +120,18 @@ export const evaluationAdminListSelect = {
       id: true,
       code: true,
       name: true,
-      major: { select: { faculty: { select: { id: true, code: true, name: true } } } },
+      major: {
+        select: { faculty: { select: { id: true, code: true, name: true } } },
+      },
     },
   },
-  semester: { select: { year: true, semester: true, isActive: true } },
+  semester: { select: evaluationSemesterSelect },
 } satisfies Prisma.EvaluationFormSelect;
 
 // ─── GET /admin/evaluations – danh sách duyệt cuối cho admin ────────────────
 export const evaluationAdminApprovalListSelect = {
   id: true,
+  version: true,
   status: true,
   submittedAt: true,
   classLeaderReviewedAt: true,
@@ -124,15 +144,18 @@ export const evaluationAdminApprovalListSelect = {
       id: true,
       code: true,
       name: true,
-      major: { select: { faculty: { select: { id: true, code: true, name: true } } } },
+      major: {
+        select: { faculty: { select: { id: true, code: true, name: true } } },
+      },
     },
   },
-  semester: { select: { year: true, semester: true, isActive: true } },
+  semester: { select: evaluationSemesterSelect },
 } satisfies Prisma.EvaluationFormSelect;
 
 // ─── GET /:id/status – approval trail ─────────────────────────────────────────
 export const evaluationStatusSelect = {
   id: true,
+  version: true,
   status: true,
   isLocked: true,
   lockedAt: true,
@@ -157,7 +180,7 @@ export const evaluationScoreSummarySelect = {
   activityScore: true,
   communityScore: true,
   roleScore: true,
-  semester: { select: { year: true, semester: true, isActive: true } },
+  semester: { select: evaluationSemesterSelect },
 } satisfies Prisma.EvaluationFormSelect;
 
 // ─── Section score selects ────────────────────────────────────────────────────
@@ -211,9 +234,10 @@ export type EvaluationScoreSummaryRecord = Prisma.EvaluationFormGetPayload<{
 export type EvaluationAdminListRecord = Prisma.EvaluationFormGetPayload<{
   select: typeof evaluationAdminListSelect;
 }>;
-export type EvaluationAdminApprovalListRecord = Prisma.EvaluationFormGetPayload<{
-  select: typeof evaluationAdminApprovalListSelect;
-}>;
+export type EvaluationAdminApprovalListRecord =
+  Prisma.EvaluationFormGetPayload<{
+    select: typeof evaluationAdminApprovalListSelect;
+  }>;
 export type StudyScoreRecord = Prisma.EvaluationFormGetPayload<{
   select: typeof studyScoreSelect;
 }>;

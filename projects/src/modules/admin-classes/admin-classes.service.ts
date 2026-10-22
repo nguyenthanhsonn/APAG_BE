@@ -1,3 +1,7 @@
+import { ImportPreviewStore } from '../../infrastructure/cache/import-preview-store.service';
+import { ProfileCacheService } from '../../infrastructure/cache/profile-cache.service';
+import { cacheKeys } from '../../infrastructure/cache/cache.keys';
+import { throwBusinessUniqueConflict } from '../../common/helpers/business-uniqueness.helper';
 import {
   BadRequestException,
   ConflictException,
@@ -19,7 +23,10 @@ import {
   parseOptionalDateOnly,
 } from '../../common/helpers/date-only.helper';
 import { PrismaService } from '../../database/prisma.service';
-import { Prisma, UserRole as PrismaUserRole } from '../../generated/prisma/client';
+import {
+  Prisma,
+  UserRole as PrismaUserRole,
+} from '../../generated/prisma/client';
 import {
   UserRole as SharedUserRole,
   type PaginatedResult,
@@ -115,16 +122,16 @@ const IMPORT_GENERATED_PASSWORD_BYTES = 9;
 const IMPORT_TRANSACTION_TIMEOUT_MS = 60_000;
 const IMPORT_PREVIEW_TTL_MS = 10 * 60 * 1000;
 const IMPORT_EMAIL_BATCH_SIZE = 10;
-const IMPORT_EMAIL_BATCH_DELAY_MS = 1_000;
 
 @Injectable()
 export class AdminClassesService {
   private readonly logger = new Logger(AdminClassesService.name);
-  private readonly importPreviewCache = new Map<string, CachedImportPlan>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly studentAccountMailService: StudentAccountMailService,
+    private readonly previews: ImportPreviewStore,
+    private readonly profiles: ProfileCacheService,
   ) {}
 
   private logImportTiming(
@@ -133,7 +140,7 @@ export class AdminClassesService {
     startedAt: number,
     context: Record<string, unknown> = {},
   ): void {
-    this.logger.log({
+    this.logger.debug({
       event: 'admin-students-import.timing',
       timingId,
       step,
@@ -224,25 +231,31 @@ export class AdminClassesService {
       select: { id: true, classId: true },
     });
 
-    const enrollment = currentEnrollment
-      ? await this.prisma.classStudent.update({
-          where: { id: currentEnrollment.id },
-          data: {
-            classId,
-            studentCode: dto.studentCode,
-          },
-          select: adminClassStudentSelect,
-        })
-      : await this.prisma.classStudent.create({
-          data: {
-            classId,
-            studentId: dto.studentId,
-            studentCode: dto.studentCode,
-          },
-          select: adminClassStudentSelect,
-        });
+    try {
+      const enrollment = currentEnrollment
+        ? await this.prisma.classStudent.update({
+            where: { id: currentEnrollment.id },
+            data: {
+              classId,
+              studentCode: dto.studentCode,
+            },
+            select: adminClassStudentSelect,
+          })
+        : await this.prisma.classStudent.create({
+            data: {
+              classId,
+              studentId: dto.studentId,
+              studentCode: dto.studentCode,
+            },
+            select: adminClassStudentSelect,
+          });
 
-    return mapToAdminClassStudentResponse(enrollment);
+      await this.profiles.invalidate(dto.studentId);
+      return mapToAdminClassStudentResponse(enrollment);
+    } catch (error) {
+      throwBusinessUniqueConflict(error);
+      throw error;
+    }
   }
 
   async removeStudent(
@@ -278,6 +291,7 @@ export class AdminClassesService {
       select: { id: true },
     });
 
+    await this.profiles.invalidate(studentId);
     return mapToAdminClassStudentResponse(enrollment);
   }
 
@@ -319,7 +333,6 @@ export class AdminClassesService {
     this.logImportTiming(timingId, 'api-preview-done', startedAt, {
       endpoint: '/admin/classes/:classId/students/import',
       rowCount: rows.length,
-      importToken: response.importToken,
       successCount: response.successCount,
       skippedCount: response.skippedCount,
       createdAccountCount: response.createdAccountCount,
@@ -362,7 +375,6 @@ export class AdminClassesService {
     this.logImportTiming(timingId, 'api-preview-done', startedAt, {
       endpoint: '/admin/students/import',
       rowCount: rows.length,
-      importToken: response.importToken,
       successCount: response.successCount,
       skippedCount: response.skippedCount,
       createdAccountCount: response.createdAccountCount,
@@ -382,10 +394,11 @@ export class AdminClassesService {
       endpoint: '/admin/students/import/confirm',
       userId,
       role,
-      importToken,
     });
 
-    const plan = this.importPreviewCache.get(importToken);
+    const previewKey = cacheKeys.studentImport(importToken);
+    const preview = await this.previews.get<CachedImportPlan>(previewKey);
+    const plan = preview;
 
     if (!plan) {
       throw new BadRequestException(
@@ -394,7 +407,7 @@ export class AdminClassesService {
     }
 
     if (plan.expiresAt <= Date.now()) {
-      this.importPreviewCache.delete(importToken);
+      await this.previews.del(previewKey);
       throw new BadRequestException(
         'Phiên import đã hết hạn, vui lòng tải lại file',
       );
@@ -406,17 +419,18 @@ export class AdminClassesService {
       );
     }
 
-    this.importPreviewCache.delete(importToken);
+    const claimed = await this.previews.get<CachedImportPlan>(previewKey, true);
+    if (!claimed)
+      throw new BadRequestException('Phiên import đã được xác nhận');
     try {
-      const result = await this.commitImportPlan(plan, timingId);
+      const result = await this.commitImportPlan(claimed, timingId);
       this.logImportTiming(timingId, 'api-confirm-done', startedAt, {
         endpoint: '/admin/students/import/confirm',
-        importToken,
         totalRows: result.totalRows,
         successCount: result.successCount,
         skippedCount: result.skippedCount,
         createdAccountCount: result.createdAccountCount,
-        emailSentCount: result.emailSentCount,
+        emailQueuedCount: result.emailQueuedCount,
         emailFailedCount: result.emailFailedCount,
       });
 
@@ -424,7 +438,6 @@ export class AdminClassesService {
     } catch (error) {
       this.logImportTiming(timingId, 'api-confirm-failed', startedAt, {
         endpoint: '/admin/students/import/confirm',
-        importToken,
         message: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -444,7 +457,6 @@ export class AdminClassesService {
   ): Promise<ImportClassStudentsPreviewResponse> {
     const previewStartedAt = Date.now();
     const errors: ImportClassStudentsResult['errors'] = [];
-    const preloadLabel = createImportTimingLabel(timingId, 'preload');
     const preloadStartedAt = Date.now();
     let classes: ManageableClassRecord[] = [];
     let existingStudents: ImportStudentRecord[] = [];
@@ -460,7 +472,6 @@ export class AdminClassesService {
       studentCode: string;
     }> = [];
 
-    console.time(preloadLabel);
     try {
       classes = fixedClassRecord
         ? [fixedClassRecord]
@@ -499,7 +510,6 @@ export class AdminClassesService {
       existingEnrollments = studentEnrollments;
       enrollmentsByCode = codeEnrollments;
     } finally {
-      console.timeEnd(preloadLabel);
       this.logImportTiming(timingId, 'preload', preloadStartedAt, {
         rowCount: rows.length,
         classCount: classes.length,
@@ -770,13 +780,22 @@ export class AdminClassesService {
       fullName: item.row.fullName?.trim() ?? '',
     }));
 
-    this.importPreviewCache.set(importToken, {
+    await this.previews.set(cacheKeys.studentImport(importToken), {
       userId,
       role,
       expiresAt: expiresAt.getTime(),
       totalRows: rows.length,
       skippedCount,
-      toCreate,
+      toCreate: toCreate.map((item) => ({
+        ...item,
+        row: {
+          ...item.row,
+          dateOfBirth:
+            item.row.dateOfBirth instanceof Date
+              ? (formatDateOnly(item.row.dateOfBirth) ?? undefined)
+              : item.row.dateOfBirth,
+        },
+      })),
       toEnroll,
       profileUpdates,
     });
@@ -817,13 +836,7 @@ export class AdminClassesService {
   ): Promise<ImportClassStudentsResult> {
     const commitStartedAt = Date.now();
     const createdAccounts: ImportClassStudentsResult['createdAccounts'] = [];
-    const preparePasswordsLabel = createImportTimingLabel(
-      timingId,
-      'prepare-passwords',
-    );
-    const loopInsertLabel = createImportTimingLabel(timingId, 'loop-insert');
     const preparePasswordsStartedAt = Date.now();
-    console.time(preparePasswordsLabel);
     const preparedCreates = await Promise.all(
       plan.toCreate.map(async (item) => ({
         ...item,
@@ -833,10 +846,14 @@ export class AdminClassesService {
         ),
       })),
     );
-    console.timeEnd(preparePasswordsLabel);
-    this.logImportTiming(timingId, 'prepare-passwords', preparePasswordsStartedAt, {
-      createCount: plan.toCreate.length,
-    });
+    this.logImportTiming(
+      timingId,
+      'prepare-passwords',
+      preparePasswordsStartedAt,
+      {
+        createCount: plan.toCreate.length,
+      },
+    );
 
     const toEnroll = [...plan.toEnroll];
     const profileUpdateByStudentId = new Map(
@@ -844,7 +861,6 @@ export class AdminClassesService {
     );
     let successCount = 0;
     const loopInsertStartedAt = Date.now();
-    console.time(loopInsertLabel);
     try {
       await this.prisma.$transaction(
         async (tx) => {
@@ -890,7 +906,7 @@ export class AdminClassesService {
                 select: { id: true, email: true, username: true },
               });
             } catch (error) {
-              handleImportUserCreateError(error);
+              throwBusinessUniqueConflict(error);
               throw error;
             }
 
@@ -977,8 +993,10 @@ export class AdminClassesService {
           timeout: IMPORT_TRANSACTION_TIMEOUT_MS,
         },
       );
+    } catch (error) {
+      throwBusinessUniqueConflict(error);
+      throw error;
     } finally {
-      console.timeEnd(loopInsertLabel);
       this.logImportTiming(timingId, 'loop-insert-total', loopInsertStartedAt, {
         createCount: preparedCreates.length,
         enrollInputCount: toEnroll.length,
@@ -986,9 +1004,11 @@ export class AdminClassesService {
       });
     }
 
-    const sendEmailsLabel = createImportTimingLabel(timingId, 'send-emails');
+    await this.profiles.invalidate(
+      ...toEnroll.map((row) => row.studentId),
+      ...profileUpdateByStudentId.keys(),
+    );
     const sendEmailsStartedAt = Date.now();
-    console.time(sendEmailsLabel);
     let emailResult: {
       sentCount: number;
       errors: ImportClassStudentsResult['emailErrors'];
@@ -997,7 +1017,6 @@ export class AdminClassesService {
     try {
       emailResult = await this.sendCreatedAccountEmails(createdAccounts);
     } finally {
-      console.timeEnd(sendEmailsLabel);
       this.logImportTiming(timingId, 'send-emails', sendEmailsStartedAt, {
         emailCount: createdAccounts.length,
       });
@@ -1018,7 +1037,8 @@ export class AdminClassesService {
       skippedCount: plan.skippedCount,
       createdAccountCount: createdAccounts.length,
       createdAccounts,
-      emailSentCount: emailResult.sentCount,
+      emailSentCount: 0,
+      emailQueuedCount: emailResult.sentCount,
       emailFailedCount: emailResult.errors.length,
       emailErrors: emailResult.errors,
       failedCount: 0,
@@ -1077,11 +1097,7 @@ export class AdminClassesService {
         });
       });
 
-      if (index + IMPORT_EMAIL_BATCH_SIZE < accounts.length) {
-        // Keep the current API contract, but throttle SMTP bursts so providers
-        // are less likely to rate-limit a 100-student import.
-        await sleep(IMPORT_EMAIL_BATCH_DELAY_MS);
-      }
+
     }
 
     return {
@@ -1644,30 +1660,8 @@ function validateImportUsername(username: string): void {
   }
 }
 
-function handleImportUserCreateError(error: unknown): void {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
-    return;
-  }
-
-  if (error.code !== 'P2002') {
-    return;
-  }
-
-  const target = (error.meta?.target as string[] | undefined)?.join(',') ?? '';
-
-  if (target.includes('username')) {
-    throw new ConflictException('Tên đăng nhập đã tồn tại');
-  }
-
-  throw new ConflictException('Email đã tồn tại');
-}
-
 function generateImportPassword(): string {
   return `Sv@${randomBytes(IMPORT_GENERATED_PASSWORD_BYTES).toString('base64url')}`;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function collectImportStudentCodes(
@@ -1798,8 +1792,4 @@ function assertImportStudentCodeAvailable(
 
 function createImportTimingId(): string {
   return randomBytes(4).toString('hex');
-}
-
-function createImportTimingLabel(timingId: string, step: string): string {
-  return `admin-students-import:${timingId}:${step}`;
 }

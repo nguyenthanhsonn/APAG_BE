@@ -1,3 +1,4 @@
+import { ProfileCacheService } from '../../infrastructure/cache/profile-cache.service';
 import {
   BadRequestException,
   Injectable,
@@ -48,13 +49,6 @@ type ResetPasswordResult = {
   message: string;
 };
 
-type CachedProfile = {
-  user: User;
-  expiresAt: number;
-};
-
-const PROFILE_CACHE_TTL_MS = 30_000;
-const PROFILE_CACHE_MAX_SIZE = 1_000;
 const PASSWORD_RESET_TOKEN_BYTES = 32;
 const PASSWORD_RESET_TTL_MINUTES = 15;
 const PASSWORD_RESET_TTL_MS = PASSWORD_RESET_TTL_MINUTES * 60 * 1000;
@@ -66,7 +60,6 @@ const DEFAULT_DUMMY_PASSWORD_HASH =
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly profileCache = new Map<string, CachedProfile>();
 
   constructor(
     private readonly usersService: UsersService,
@@ -75,6 +68,7 @@ export class AuthService {
     private readonly tokenStore: AuthTokenStoreService,
     private readonly prisma: PrismaService,
     private readonly mailService: StudentAccountMailService,
+    private readonly profiles: ProfileCacheService,
   ) {}
 
   // đăng nhập bằng username + mật khẩu
@@ -84,7 +78,7 @@ export class AuthService {
     );
     const hashToCompare = user
       ? user.passwordHash
-      : (this.configService.get<string>('DUMMY_PASSWORD_HASH') ??
+      : (this.configService.get<string>('app.dummyPasswordHash') ??
         DEFAULT_DUMMY_PASSWORD_HASH);
     const isPasswordValid = await bcrypt.compare(dto.password, hashToCompare);
 
@@ -114,29 +108,19 @@ export class AuthService {
 
   // lấy thông tin người dùng
   async getProfile(id: string): Promise<User> {
-    const cachedProfile = this.profileCache.get(id);
-    const now = Date.now();
+    return this.profiles.getOrLoad(id, 'auth', async () => {
+      const user = await this.usersService.findAuthProfileById(id);
+      if (!user) {
+        throw new NotFoundException('Người dùng không tồn tại');
+      }
+      if (!user.isActive) {
+        throw new UnauthorizedException('Người dùng không hoạt động');
+      }
 
-    if (cachedProfile && cachedProfile.expiresAt > now) {
-      return cachedProfile.user;
-    }
+      const profile = mapAuthProfileToUser(user);
 
-    if (cachedProfile) {
-      this.profileCache.delete(id);
-    }
-
-    const user = await this.usersService.findAuthProfileById(id);
-    if (!user) {
-      throw new NotFoundException('Người dùng không tồn tại');
-    }
-    if (!user.isActive) {
-      throw new UnauthorizedException('Người dùng không hoạt động');
-    }
-
-    const profile = mapAuthProfileToUser(user);
-    this.cacheProfile(id, profile, now);
-
-    return profile;
+      return profile;
+    });
   }
 
   // làm mới token
@@ -166,19 +150,22 @@ export class AuthService {
       throw new UnauthorizedException('Mã làm mới không hợp lệ');
     }
 
-    return this.createSession({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role as UserRole,
-    });
+    return this.createSession(
+      {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role as UserRole,
+      },
+      user.refreshTokenHash,
+    );
   }
 
   async logout(
     user: AuthenticatedUser,
     dto: LogoutDto = {},
   ): Promise<LogoutResult> {
-    this.tokenStore.revokeToken(user.accessTokenId, user.tokenExpiresAt);
+    await this.tokenStore.revokeToken(user.accessTokenId, user.tokenExpiresAt);
 
     if (dto.refreshToken) {
       const payload = await this.verifyRefreshToken(dto.refreshToken);
@@ -188,7 +175,7 @@ export class AuthService {
     }
 
     await this.usersService.clearRefreshToken(user.id);
-    this.profileCache.delete(user.id);
+    await this.profiles.invalidate(user.id);
 
     return { loggedOut: true };
   }
@@ -233,6 +220,7 @@ export class AuthService {
         fullName: user.fullName,
         resetUrl: this.buildPasswordResetUrl(rawToken),
         expiresInMinutes: PASSWORD_RESET_TTL_MINUTES,
+        expiresAt: expiresAt.getTime(),
       });
     } catch (error) {
       await this.prisma.passwordResetToken.updateMany({
@@ -310,7 +298,8 @@ export class AuthService {
       }),
     ]);
 
-    this.profileCache.delete(resetToken.userId);
+    await this.tokenStore.revokeUserTokensIssuedBefore(resetToken.userId);
+    await this.profiles.invalidate(resetToken.userId);
 
     return {
       message:
@@ -346,8 +335,9 @@ export class AuthService {
     );
     await this.usersService.updatePasswordHash(user.id, passwordHash);
     await this.usersService.clearRefreshToken(user.id);
-    this.profileCache.delete(user.id);
-    this.tokenStore.revokeToken(user.accessTokenId, user.tokenExpiresAt);
+    await this.tokenStore.revokeUserTokensIssuedBefore(user.id);
+    await this.profiles.invalidate(user.id);
+    await this.tokenStore.revokeToken(user.accessTokenId, user.tokenExpiresAt);
 
     return {
       passwordChanged: true,
@@ -355,21 +345,40 @@ export class AuthService {
     };
   }
 
-  private async createSession(subject: TokenSubject): Promise<AuthTokens> {
+  private async createSession(
+    subject: TokenSubject,
+    previousRefreshHash?: string,
+  ): Promise<AuthTokens> {
+    const revocationStamp = await this.tokenStore.getRevocationStamp(
+      subject.id,
+    );
     const [accessToken, refreshToken] = await Promise.all([
-      this.signAccessToken(subject),
-      this.signRefreshToken(subject),
+      this.signAccessToken(subject, revocationStamp),
+      this.signRefreshToken(subject, revocationStamp),
     ]);
     const refreshTokenPayload =
       this.jwtService.decode<JwtPayload>(refreshToken);
     const refreshTokenExpiresAt = this.getTokenExpiresAt(refreshTokenPayload);
     const refreshTokenHash = this.hashRefreshToken(refreshToken);
 
-    await this.usersService.updateRefreshToken(
-      subject.id,
-      refreshTokenHash,
-      refreshTokenExpiresAt,
-    );
+    if (previousRefreshHash) {
+      const updated = await this.usersService.rotateRefreshToken(
+        subject.id,
+        previousRefreshHash,
+        refreshTokenHash,
+        refreshTokenExpiresAt,
+      );
+      if (!updated)
+        throw new UnauthorizedException(
+          'Mã làm mới đã được sử dụng hoặc đã bị thu hồi',
+        );
+    } else {
+      await this.usersService.updateRefreshToken(
+        subject.id,
+        refreshTokenHash,
+        refreshTokenExpiresAt,
+      );
+    }
 
     return {
       accessToken,
@@ -377,8 +386,12 @@ export class AuthService {
     };
   }
 
-  private signAccessToken(subject: TokenSubject): Promise<string> {
+  private signAccessToken(
+    subject: TokenSubject,
+    revocationStamp?: string,
+  ): Promise<string> {
     const payload: JwtPayload = {
+      revocationStamp,
       sub: subject.id,
       username: subject.username,
       email: subject.email,
@@ -395,8 +408,13 @@ export class AuthService {
     });
   }
 
-  private signRefreshToken(subject: TokenSubject): Promise<string> {
+  private signRefreshToken(
+    subject: TokenSubject,
+    revocationStamp?: string,
+  ): Promise<string> {
     const payload: JwtPayload = {
+      revocationStamp,
+      jti: randomUUID(),
       sub: subject.id,
       username: subject.username,
       email: subject.email,
@@ -413,13 +431,17 @@ export class AuthService {
   }
 
   private async verifyRefreshToken(refreshToken: string): Promise<JwtPayload> {
+    let payload: JwtPayload;
     try {
-      return await this.jwtService.verifyAsync<JwtPayload>(refreshToken, {
+      payload = await this.jwtService.verifyAsync<JwtPayload>(refreshToken, {
         secret: this.configService.getOrThrow<string>('app.jwtRefreshSecret'),
       });
     } catch {
       throw new UnauthorizedException('Mã làm mới không hợp lệ');
     }
+    if (await this.tokenStore.isTokenRevoked(payload))
+      throw new UnauthorizedException('Mã làm mới đã bị thu hồi');
+    return payload;
   }
 
   private getTokenExpiresAt(payload: JwtPayload): Date {
@@ -439,19 +461,17 @@ export class AuthService {
   }
 
   private buildPasswordResetUrl(token: string): string {
-    const explicitResetUrl = process.env.PASSWORD_RESET_URL?.trim();
-    const frontendUrls = (process.env.FRONTEND_URL ?? '')
-      .split(',')
-      .map((url) => url.trim())
-      .filter(Boolean);
+    const explicitResetUrl = this.configService.get<string>(
+      'app.passwordResetUrl',
+    );
+    const frontendUrls =
+      this.configService.get<string[]>('app.frontendUrls') ?? [];
     const preferredFrontendUrl =
-      frontendUrls.find((url) => url.includes('10.36.120.223')) ??
-      frontendUrls.find((url) => !url.includes('localhost')) ??
-      frontendUrls[0];
+      frontendUrls.find((url) => !url.includes('localhost')) ?? frontendUrls[0];
     const rawBaseUrl =
       explicitResetUrl ??
       preferredFrontendUrl ??
-      process.env.STUDENT_PORTAL_URL?.trim() ??
+      this.configService.get<string>('app.studentPortalUrl') ??
       '';
 
     if (!rawBaseUrl) {
@@ -487,19 +507,5 @@ export class AuthService {
     }
 
     return bcrypt.compare(refreshToken, refreshTokenHash);
-  }
-
-  private cacheProfile(id: string, user: User, now: number): void {
-    if (this.profileCache.size >= PROFILE_CACHE_MAX_SIZE) {
-      const oldestKey = this.profileCache.keys().next().value;
-      if (oldestKey) {
-        this.profileCache.delete(oldestKey);
-      }
-    }
-
-    this.profileCache.set(id, {
-      user,
-      expiresAt: now + PROFILE_CACHE_TTL_MS,
-    });
   }
 }

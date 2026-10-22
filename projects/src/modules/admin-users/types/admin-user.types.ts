@@ -39,5 +39,6 @@ export type AdminUserResponse = {
     assignedAt: Date;
   } | null;
   accountEmailSent?: boolean;
+  accountEmailQueued?: boolean;
   accountEmailError?: string | null;
 };

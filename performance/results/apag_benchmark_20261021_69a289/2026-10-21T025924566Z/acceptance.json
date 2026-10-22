@@ -1,0 +1,11 @@
+{
+  "synthetic": true,
+  "beforeOptimization": true,
+  "cases": 16,
+  "failedThresholds": [],
+  "readP95Pass": 10,
+  "readCases": 10,
+  "writeP95Ms": 21.3121,
+  "expectedConflicts": 5330,
+  "concurrencyInvariantFailureRate": 0
+}

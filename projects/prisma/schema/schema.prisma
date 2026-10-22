@@ -59,6 +59,7 @@ enum CriteriaInputType {
 // ============================================================
 
 // 1. Users - tất cả actor dùng chung bảng, phân biệt qua role
+// Username chuẩn hóa còn có expression unique index users_username_normalized_key trong SQL.
 model User {
   id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   username              String    @unique @db.VarChar(50) // Định danh đăng nhập - chữ thường, số, chấm, gạch dưới/ngang
@@ -95,6 +96,8 @@ model User {
   // username đã @unique nên tự có index - đây là cột dùng để đăng nhập siêu nhanh.
   // Giữ nguyên index email cho các tra cứu liên hệ/báo cáo khác (ngoài phạm vi đổi login).
   @@index([email])
+  // EXPLAIN benchmark: đọc đúng thứ tự trước LIMIT, tránh dựng JSON cho 10k sinh viên.
+  @@index([createdAt(sort: Desc), id(sort: Desc)], map: "users_created_at_id_idx")
   @@map("users")
 }
 
@@ -249,6 +252,8 @@ model AdvisorAssignment {
 }
 
 // 8. Học kỳ
+// Tối đa 1 isActive=true: partial unique index semesters_single_active_key trong SQL migration.
+// Không dùng @unique trên isActive vì phải cho phép nhiều học kỳ inactive.
 model Semester {
   id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   year            Int        @db.SmallInt // CHECK: 2000-2100
@@ -292,6 +297,7 @@ model EvaluationCriteria {
 // 10. Phiếu đánh giá - 1 phiếu / sinh viên / học kỳ
 model EvaluationForm {
   id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  version    Int        @default(0) // Optimistic concurrency: tăng sau mỗi lần ghi phiếu
   studentId  String     @map("student_id") @db.Uuid
   classId    String     @map("class_id") @db.Uuid
   semesterId String     @map("semester_id") @db.Uuid
@@ -346,6 +352,8 @@ model EvaluationForm {
   // Constraints & Indexes
   @@unique([studentId, semesterId])
   @@index([classId]) // Lấy toàn bộ danh sách phiếu điểm của 1 lớp để BCS/CVHT duyệt điểm nhanh
+  // Đã đo trước/sau: timeline index giúp chỉ join dữ liệu của trang cần lấy.
+  @@index([semesterId, submittedAt(sort: Desc), createdAt(sort: Desc)], map: "evaluation_forms_semester_listing_idx")
   @@index([semesterId, status]) // Lọc phiếu điểm theo trạng thái của từng học kỳ (Ví dụ: tìm các hồ sơ đang 'submitted' tại kì này)
   @@index([status]) // Tổng hợp số liệu dashboard / Thống kê hồ sơ tắc nghẽn
   @@map("evaluation_forms")
@@ -422,6 +430,7 @@ model Evidence {
 
 // 14. Thông báo nội bộ cho sinh viên khi phiếu bị trả về/chờ xử lý
 model Notification {
+  dedupeKey String? @unique @map("dedupe_key") @db.VarChar(64) // Hash recipient + business event
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
   type      String?  @db.VarChar(50)
@@ -435,4 +444,14 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+}
+
+// Receipt thành công; không chứa key thô hoặc token. Giữ receipt để retry cũ không chạy lại.
+model OperationReceipt {
+  scope       String   @id @db.VarChar(64)
+  requestHash String   @map("request_hash") @db.VarChar(64)
+  response    Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("operation_receipts")
 }

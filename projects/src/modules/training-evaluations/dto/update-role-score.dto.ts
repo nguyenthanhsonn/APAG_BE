@@ -1,3 +1,4 @@
+import { ExpectedVersionDto } from './expected-version.dto';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, Max, Min, ValidateIf } from 'class-validator';
 
@@ -35,7 +36,7 @@ export const SPECIAL_ACHIEVEMENT_LEVELS = [
 export type SpecialAchievementLevel =
   (typeof SPECIAL_ACHIEVEMENT_LEVELS)[number];
 
-export class UpdateRoleScoreDto {
+export class UpdateRoleScoreDto extends ExpectedVersionDto {
   @IsIn(STUDENT_ROLE_TYPES)
   studentRoleType: StudentRoleType;
 

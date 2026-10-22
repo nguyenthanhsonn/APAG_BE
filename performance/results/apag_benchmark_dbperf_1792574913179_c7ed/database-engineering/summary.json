@@ -1,0 +1,269 @@
+{
+  "synthetic": true,
+  "databaseName": "apag_benchmark_dbperf_1792574913179_c7ed",
+  "rows": [
+    {
+      "name": "evaluations_semester",
+      "beforeServiceMs": 21.873333000000002,
+      "afterServiceMs": 1.4316660000000638,
+      "beforeP95Ms": 25.50866700000006,
+      "afterP95Ms": 1.521415999999931,
+      "beforeMainSqlMs": 21.832,
+      "afterMainSqlMs": 0.45,
+      "resultCount": 10000,
+      "sqlCount": 2
+    },
+    {
+      "name": "evaluations_deep_page",
+      "beforeServiceMs": 35.020084,
+      "afterServiceMs": 15.31295799999998,
+      "beforeP95Ms": 42.055875000000015,
+      "afterP95Ms": 20.543291999999838,
+      "beforeMainSqlMs": 35.509,
+      "afterMainSqlMs": 16.004,
+      "resultCount": 10000,
+      "sqlCount": 2
+    },
+    {
+      "name": "evaluations_status",
+      "beforeServiceMs": 6.57970800000021,
+      "afterServiceMs": 1.2039999999999509,
+      "beforeP95Ms": 7.020292000000154,
+      "afterP95Ms": 1.5398749999999382,
+      "beforeMainSqlMs": 5.592,
+      "afterMainSqlMs": 0.308,
+      "resultCount": 1960,
+      "sqlCount": 2
+    },
+    {
+      "name": "evaluations_class_status",
+      "beforeServiceMs": 0.3744579999997768,
+      "afterServiceMs": 0.3878749999998945,
+      "beforeP95Ms": 0.44083299999965675,
+      "afterP95Ms": 0.5112080000001242,
+      "beforeMainSqlMs": 0.04,
+      "afterMainSqlMs": 0.042,
+      "resultCount": 2,
+      "sqlCount": 2
+    },
+    {
+      "name": "evaluations_faculty",
+      "beforeServiceMs": 2.6700419999997393,
+      "afterServiceMs": 0.8232499999999163,
+      "beforeP95Ms": 2.9229159999999865,
+      "afterP95Ms": 0.9458329999999933,
+      "beforeMainSqlMs": 2.431,
+      "afterMainSqlMs": 0.29,
+      "resultCount": 1000,
+      "sqlCount": 2
+    },
+    {
+      "name": "evaluations_keyword_hit",
+      "beforeServiceMs": 2.9057920000000195,
+      "afterServiceMs": 2.8662919999999303,
+      "beforeP95Ms": 3.6139579999999114,
+      "afterP95Ms": 2.933082999999897,
+      "beforeMainSqlMs": 2.624,
+      "afterMainSqlMs": 2.454,
+      "resultCount": 11,
+      "sqlCount": 2
+    },
+    {
+      "name": "evaluations_keyword_miss",
+      "beforeServiceMs": 4.112916000000041,
+      "afterServiceMs": 3.62175000000002,
+      "beforeP95Ms": 4.536249999999654,
+      "afterP95Ms": 4.165915999999925,
+      "beforeMainSqlMs": 2.973,
+      "afterMainSqlMs": 2.485,
+      "resultCount": 0,
+      "sqlCount": 2
+    },
+    {
+      "name": "admin_approval",
+      "beforeServiceMs": 6.848041999999623,
+      "afterServiceMs": 1.2851250000001073,
+      "beforeP95Ms": 13.316917000000103,
+      "afterP95Ms": 2.4490829999999733,
+      "beforeMainSqlMs": 4.506,
+      "afterMainSqlMs": 0.305,
+      "resultCount": 1470,
+      "sqlCount": 2
+    },
+    {
+      "name": "admin_approval_search",
+      "beforeServiceMs": 3.1896660000002157,
+      "afterServiceMs": 3.207834000000048,
+      "beforeP95Ms": 3.5946250000001783,
+      "afterP95Ms": 3.533374999999978,
+      "beforeMainSqlMs": 2.439,
+      "afterMainSqlMs": 2.845,
+      "resultCount": 0,
+      "sqlCount": 2
+    },
+    {
+      "name": "admin_staff_listing",
+      "beforeServiceMs": 6.850750000000517,
+      "afterServiceMs": 2.932333000000199,
+      "beforeP95Ms": 7.504166000000623,
+      "afterP95Ms": 3.301292000000103,
+      "beforeMainSqlMs": 6.356,
+      "afterMainSqlMs": 0.305,
+      "resultCount": 492,
+      "sqlCount": 2
+    },
+    {
+      "name": "students_listing",
+      "beforeServiceMs": 91.77683400000024,
+      "afterServiceMs": 1.1481250000001637,
+      "beforeP95Ms": 94.06733299999996,
+      "afterP95Ms": 1.3791659999997137,
+      "beforeMainSqlMs": 94.238,
+      "afterMainSqlMs": 0.189,
+      "resultCount": 10000,
+      "sqlCount": 2
+    },
+    {
+      "name": "students_deep_page",
+      "beforeServiceMs": 99.464833,
+      "afterServiceMs": 72.14916699999958,
+      "beforeP95Ms": 119.19412499999999,
+      "afterP95Ms": 74.74579099999983,
+      "beforeMainSqlMs": 109.26,
+      "afterMainSqlMs": 75.053,
+      "resultCount": 10000,
+      "sqlCount": 2
+    },
+    {
+      "name": "student_search_hit",
+      "beforeServiceMs": 7.13037500000064,
+      "afterServiceMs": 7.071249999999964,
+      "beforeP95Ms": 7.445541999999477,
+      "afterP95Ms": 7.868207999999868,
+      "beforeMainSqlMs": 5.275,
+      "afterMainSqlMs": 5.97,
+      "resultCount": 11,
+      "sqlCount": 2
+    },
+    {
+      "name": "student_search_miss",
+      "beforeServiceMs": 6.655624999999418,
+      "afterServiceMs": 6.74474999999984,
+      "beforeP95Ms": 6.835499999999229,
+      "afterP95Ms": 7.379375000000437,
+      "beforeMainSqlMs": 5.074,
+      "afterMainSqlMs": 5.651,
+      "resultCount": 0,
+      "sqlCount": 2
+    },
+    {
+      "name": "reports_overview",
+      "beforeServiceMs": 0.723667000000205,
+      "afterServiceMs": 0.6605419999996229,
+      "beforeP95Ms": 1.0307499999998981,
+      "afterP95Ms": 0.814792000000125,
+      "beforeMainSqlMs": 0.485,
+      "afterMainSqlMs": 0.479,
+      "resultCount": null,
+      "sqlCount": 2
+    },
+    {
+      "name": "reports_training_results",
+      "beforeServiceMs": 0.3020829999986745,
+      "afterServiceMs": 0.5231659999999465,
+      "beforeP95Ms": 0.39554099999986647,
+      "afterP95Ms": 0.69066599999951,
+      "beforeMainSqlMs": 0.131,
+      "afterMainSqlMs": 0.126,
+      "resultCount": null,
+      "sqlCount": 2
+    },
+    {
+      "name": "reports_by_class",
+      "beforeServiceMs": 2.4533750000009604,
+      "afterServiceMs": 2.284042000000227,
+      "beforeP95Ms": 5.084999999999127,
+      "afterP95Ms": 11.858416999999463,
+      "beforeMainSqlMs": 0.251,
+      "afterMainSqlMs": 0.252,
+      "resultCount": 400,
+      "sqlCount": 3
+    },
+    {
+      "name": "reports_by_faculty",
+      "beforeServiceMs": 2.5936250000013388,
+      "afterServiceMs": 2.6709579999997004,
+      "beforeP95Ms": 2.9273339999999735,
+      "afterP95Ms": 4.200916999999208,
+      "beforeMainSqlMs": 0.238,
+      "afterMainSqlMs": 0.266,
+      "resultCount": 10,
+      "sqlCount": 3
+    },
+    {
+      "name": "reports_export_all",
+      "beforeServiceMs": 316.37366699999984,
+      "afterServiceMs": 306.90791700000045,
+      "beforeP95Ms": 386.3654170000009,
+      "afterP95Ms": 345.71750000000065,
+      "beforeMainSqlMs": 97.403,
+      "afterMainSqlMs": 108.447,
+      "resultCount": 30000,
+      "sqlCount": 1
+    },
+    {
+      "name": "notifications_listing",
+      "beforeServiceMs": 0.5442499999990105,
+      "afterServiceMs": 0.48712499999965075,
+      "beforeP95Ms": 0.8957080000000133,
+      "afterP95Ms": 1.1557080000002316,
+      "beforeMainSqlMs": 0.003,
+      "afterMainSqlMs": 0.003,
+      "resultCount": 1,
+      "sqlCount": 2
+    },
+    {
+      "name": "notifications_unread",
+      "beforeServiceMs": 0.10674999999901047,
+      "afterServiceMs": 0.11420800000087183,
+      "beforeP95Ms": 0.11270800000056624,
+      "afterP95Ms": 0.1239579999983107,
+      "beforeMainSqlMs": 0.002,
+      "afterMainSqlMs": 0.002,
+      "resultCount": null,
+      "sqlCount": 1
+    }
+  ],
+  "pool": {
+    "groups": {
+      "steady": {
+        "requests": 2000,
+        "errors": 0,
+        "durationMs": {
+          "min": 2.282333999999537,
+          "median": 7.811541000002762,
+          "p95": 28.17145899999923,
+          "max": 98.6517500000009
+        },
+        "achievedRps": 99.9906531687142
+      },
+      "burst": {
+        "requests": 80,
+        "errors": 0,
+        "durationMs": {
+          "min": 17.23558299999786,
+          "median": 65.76529200000004,
+          "p95": 87.80699999999706,
+          "max": 88.5211249999993
+        }
+      }
+    },
+    "peakApplicationPoolTotal": 21,
+    "peakConnections": 27,
+    "timeout": {
+      "configuredMs": 100,
+      "elapsedMs": 101.97175000000425,
+      "recovered": true
+    }
+  }
+}

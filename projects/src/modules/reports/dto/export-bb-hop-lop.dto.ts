@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   Allow,
   IsArray,
+  ArrayMaxSize,
   IsIn,
   IsInt,
   IsOptional,
@@ -11,7 +12,10 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { TRAINING_RANK_LABELS, type TrainingRankLabel } from './export-bb-hop-khoa.dto';
+import {
+  TRAINING_RANK_LABELS,
+  type TrainingRankLabel,
+} from './export-bb-hop-khoa.dto';
 
 export class BbHopLopStudentDto {
   @IsInt()
@@ -65,6 +69,9 @@ export class BbHopLopStudentDto {
 export class ExportBbHopLopDto {
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(500, {
+    message: 'Biên bản đồng bộ chỉ hỗ trợ tối đa 500 sinh viên',
+  })
   @ValidateNested({ each: true })
   @Type(() => BbHopLopStudentDto)
   students?: BbHopLopStudentDto[];

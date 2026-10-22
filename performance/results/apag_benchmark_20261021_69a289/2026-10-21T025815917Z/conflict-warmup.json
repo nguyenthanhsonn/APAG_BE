@@ -1,0 +1,325 @@
+{
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 1375.36
+  },
+  "metrics": {
+    "http_req_failed": {
+      "contains": "default",
+      "values": {
+        "fails": 652,
+        "rate": 0,
+        "passes": 0
+      },
+      "type": "rate"
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 398452,
+        "rate": 289707.4220567706
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 652,
+        "rate": 474.05770125639833
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 1.204,
+        "med": 9.1415,
+        "p(50)": 9.1415,
+        "p(95)": 32.065,
+        "p(99)": 108.03386,
+        "max": 117.778,
+        "count": 652,
+        "avg": 13.213003067484664
+      }
+    },
+    "http_req_blocked": {
+      "values": {
+        "count": 652,
+        "avg": 0.014288343558282025,
+        "min": 0,
+        "med": 0.001,
+        "p(50)": 0.001,
+        "p(95)": 0.09689999999999994,
+        "p(99)": 0.27693999999999996,
+        "max": 0.312
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_connecting": {
+      "values": {
+        "avg": 0.011722392638036809,
+        "min": 0,
+        "med": 0,
+        "p(50)": 0,
+        "p(95)": 0.08589999999999995,
+        "p(99)": 0.24997999999999998,
+        "max": 0.266,
+        "count": 652
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 161.8551425,
+        "max": 162.646667,
+        "count": 158,
+        "avg": 131.71709177215197,
+        "min": 106.444333,
+        "med": 131.3102285,
+        "p(50)": 131.3102285,
+        "p(95)": 156.66655805000002
+      }
+    },
+    "vus_max": {
+      "values": {
+        "value": 20,
+        "min": 20,
+        "max": 20
+      },
+      "type": "gauge",
+      "contains": "default"
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 32.054649999999995,
+        "p(99)": 107.98433,
+        "max": 117.741,
+        "count": 652,
+        "avg": 13.19345705521472,
+        "min": 1.19,
+        "med": 9.126999999999999,
+        "p(50)": 9.126999999999999
+      }
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(50)": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0,
+        "count": 652,
+        "avg": 0,
+        "min": 0,
+        "med": 0
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 158,
+        "rate": 114.87901349464867
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 20,
+        "min": 20,
+        "max": 20
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 117.778,
+        "count": 652,
+        "avg": 13.213003067484664,
+        "min": 1.204,
+        "med": 9.1415,
+        "p(50)": 9.1415,
+        "p(95)": 32.065,
+        "p(99)": 108.03386
+      }
+    },
+    "benchmark_window_ms": {
+      "type": "trend",
+      "contains": "default",
+      "values": {
+        "max": 1792551522077,
+        "count": 1264,
+        "avg": 1792551521591.3828,
+        "min": 1792551521099.636,
+        "med": 1792551521592.5,
+        "p(50)": 1792551521592.5,
+        "p(95)": 1792551522034.9883,
+        "p(99)": 1792551522066.1587
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "passes": 632,
+        "fails": 0,
+        "rate": 1
+      },
+      "thresholds": {
+        "rate>0.99": {
+          "ok": true
+        }
+      }
+    },
+    "unexpected_errors": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 632
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 1371872,
+        "rate": 997463.9367147511
+      }
+    },
+    "benchmark_requests": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 632,
+        "rate": 459.5160539785947
+      }
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.014217791411042898,
+        "min": 0.005,
+        "med": 0.01,
+        "p(50)": 0.01,
+        "p(95)": 0.03644999999999997,
+        "p(99)": 0.059979999999999985,
+        "max": 0.388,
+        "count": 652
+      }
+    },
+    "api_latency": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 27.012449999999987,
+        "p(99)": 35.382349999999995,
+        "max": 37.257,
+        "count": 632,
+        "avg": 11.059875000000002,
+        "min": 1.204,
+        "med": 8.5985,
+        "p(50)": 8.5985
+      }
+    },
+    "expected_conflicts": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 114.87901349464867,
+        "count": 158
+      }
+    },
+    "concurrency_invariant_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 158
+      },
+      "thresholds": {
+        "rate==0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 0.03449,
+        "max": 0.048,
+        "count": 652,
+        "avg": 0.005328220858895671,
+        "min": 0.001,
+        "med": 0.004,
+        "p(50)": 0.004,
+        "p(95)": 0.014
+      }
+    }
+  },
+  "setup_data": {
+    "tokens": [
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxYmNlYzA3Yy0xYzQxLTRkYmQtOTk4OC0yZjQ0OTgxMmFmZTciLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDAxIiwiZW1haWwiOiJiZW5jaF9zdl8wMDAwMUBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiNDI1Yjk2MGQtMjdkMC00ZDMwLTk5YmMtMjBiYjdhNjMyYjdlIiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.LujOSXQagGJEu6LzWZa9ATO5YCR8EnucO02VwH98XAw",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMzQ0NjllZC0zMTcxLTQ1NjktYTNjYi0wMjE3MGI0ZjM3MmEiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDAyIiwiZW1haWwiOiJiZW5jaF9zdl8wMDAwMkBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiODI0YjI3M2MtODcyYi00Mjg0LThhNzUtMjE1YmQyYWZkNzMwIiwiaWF0IjoxNzkyNTUxNTIxLCJleHAiOjE3OTI1NTUxMjF9.4AK_q92LqDgrfhjeUNAjOkZaBwGuDZqrysp1ySlhsyw",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlMDE1ZGU2YS0zZGI4LTQ2OTktYjMyZC1hMGVhNGQzNzgwMzUiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDAzIiwiZW1haWwiOiJiZW5jaF9zdl8wMDAwM0BiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiZjVkYTBmNjUtOWMzMC00MTU4LTgxNDItMDQ2MDBjNTlhODlhIiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.apzcl1CpNzU1-hxJbFZNLveippa69U1RNEfO9UKWsWs",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4ZTI3NDMxNC01MzU4LTQwODctYWQ3Zi0wYmYwM2U5YmM0MWYiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDA0IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAwNEBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiOWExOTM3OWItZDczZi00M2QzLWFkOTYtNDk0OTMwZTNhZmY2IiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.aiIwypdfRReIXSMFr6qM8TUFSnP01eCg1Md_hI8fy08",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZGQ0NmVhOS04ZmQ4LTRlYmMtYWJlYi1kN2U3ODY2NTcwMzciLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDA1IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAwNUBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiYWJhZmJiZTctZDhjZC00N2FhLThkMDQtYzI3MDcxMjczM2FhIiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.wmaj8XhGxK4GDggLYYdzkDzSWZc4_gigv0ThRsHjBs8",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmMGNjODgyMy02ZGRmLTQ4ZjUtOTJlNC0wYjYzNDUyNmIzY2QiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDA2IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAwNkBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiMGM0NDYyNjYtYThmNC00YzhjLWE1ZmQtZjQxNGRhZGFmYmQ0IiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.xMZ9q12Vuy7kq4DkDsvFSeakJbYO6Gf3zS0zuRR0mLA",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMTNjNTg4ZC0wYTIxLTQwODYtYmM0NS1hZWI2YTE4YTU3YTgiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDA3IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAwN0BiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiMWMxMWMyMWQtMTViOC00MjllLWE2MDEtNDA4MGQ1NmM2ZDQxIiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.SXqgGPpJyN32rGuNCvNieeY6TaAHHH5npQ8F_89MYuA",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwZmJhYjhiYi1lZDcyLTRhZTAtODBkYi1mNmRiM2IzMzI1ODAiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDA4IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAwOEBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiZDgxZjBiZjAtYzJkNy00NjJmLWI3MjEtYzNjOTQ1NjE3Yjg2IiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.2QsHfNPqUMspA5DiHEJIqB3qIXr4dc3PS1t5FPFKZMU",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhNWYwZTcyNC00MmU1LTQwZDMtYWFmYi0yN2U1YTRjZmYzYzkiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDA5IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAwOUBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiNTVmM2Q2YTAtYTQ4OC00NzY3LTk5OTEtZTdhZTExZGNjMzI3IiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.qCENfNEJ07L5fR35AzrAYWKQK18yHwcTUmYW6x8CEm0",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1OTZiOWUyNC05NWMyLTQ2ZjItODM2YS1kYmFjOTdlODZlMGQiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDEwIiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxMEBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiY2UzMDAxY2UtYTY4OC00YThiLWE0ODgtMGI5ZjM2NjRlODU3IiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.qINUNrgnun-WaCwiwgG8DQ2VD2KXg0TsQ3iaZuTQRHQ",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiODkxOGFmMS03YWZjLTRmMjUtYjQyOS1jMmY1OTEyMDhhNTMiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDExIiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxMUBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiOGFmZWYxODQtZmQ2ZS00ZWUzLTg2NDQtMjk1YTVjOWZlNDI3IiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.ENvryS63BXaDcwxx0VY4vNjOIOpUYm_vASUUNGmbIBM",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyNTQ3MDIzZS0wMDlhLTQyNDEtOGE1OS02YjcwY2QxMzY1YTIiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDEyIiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxMkBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiMDkxYjY2NzMtOWI5Ni00YTZjLWI5NWEtYjE5ZDk5ODI4OGEyIiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.ZswoTTJStXPW7z0w8xUBE9oNS3wdIw7BvRO93zVQD_s",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzZGFhYTUzZS1mMzE5LTQ2NWQtOGRmYi02NjcyZWQ2MmZjNGMiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDEzIiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxM0BiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiNGFmNjAzODQtODFiNC00YmQ1LTliYjItMjMxZTNlYzYzNzI0IiwiaWF0IjoxNzkyNTUxNTIwLCJleHAiOjE3OTI1NTUxMjB9.AFOG2-SyfI45_rBr6rgrg4Veta02P3ooX5JL7pb3QxA",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NDRkZmUyMy04MmFhLTQyYjEtOWYxZC00OWIzOTA4YTNlY2QiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDE0IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxNEBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiY2Y2N2I1MzgtYTFkYi00NWJlLTlhYzEtMmU3N2IzZDY1ZWRjIiwiaWF0IjoxNzkyNTUxNTIxLCJleHAiOjE3OTI1NTUxMjF9.yYvU0jX_BxDvDfNgOIEzXqCucDz4xoymgirt865KX2I",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYWZjODg5Yi0yYjA1LTRmNmEtOGFiMC04MzBhZTE5YjYwZTMiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDE1IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxNUBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiNWJhZTAwZjctNmM5OC00MmQwLWI1ZTYtOTZhMWQxNzAwYzBlIiwiaWF0IjoxNzkyNTUxNTIxLCJleHAiOjE3OTI1NTUxMjF9.U0mq-8d5w5DsWIiFhoqsbvmGKKLezZ0hVdQkrCwBfnI",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTk5NWUwYi1jMzkwLTQ5ODUtODFlZS1jNTFmOTM5ZjZkMTEiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDE2IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxNkBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiZWJkNTE2MDgtYmExMS00OTAyLWIzYmMtOGJhOTI2MTNlNjFlIiwiaWF0IjoxNzkyNTUxNTIxLCJleHAiOjE3OTI1NTUxMjF9.HJzZU-FocQ6W_HUOARTH0PUaSc9kgY9rxgYqilFP-0M",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3ZWFmMWJlOS1kNGZhLTQwODQtYmVjMy1lZThlYTdjMzhjYjQiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDE3IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxN0BiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiNTc4NThiYTEtNzYzOS00ZTNmLWE4YzAtMDg3YTEyODEzZDY2IiwiaWF0IjoxNzkyNTUxNTIxLCJleHAiOjE3OTI1NTUxMjF9.BuydLWXvx26QpTDIbeDIqDMNQg1vyv3zCWJL-ErJByI",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4MzljNzUwYi1kMmQ4LTRjMmUtYTBiNi1mM2RiNmUwMGVmMjMiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDE4IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxOEBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiZjhiMTE4ZDAtZjBjOS00ZjQ4LWJjNTEtYTAzODU4OTc2ZjgyIiwiaWF0IjoxNzkyNTUxNTIxLCJleHAiOjE3OTI1NTUxMjF9.FY05sQuhNr1EqPpYYJurYwE5T2J4rHpZYfsRwFx7R4k",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZWE1ZmJmYS03ZTIxLTQwOWEtOTRhMS05YWZiZTg0MmJlM2UiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDE5IiwiZW1haWwiOiJiZW5jaF9zdl8wMDAxOUBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiNmJlZGE2MWEtMzcyZC00NzRlLThkMTEtM2ZjNWE5M2EwYTU3IiwiaWF0IjoxNzkyNTUxNTIxLCJleHAiOjE3OTI1NTUxMjF9.rnirELlO26_p_K87K6mHM7rnEMHE-3fJy0vRkYSvdPg",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YWQ5MjIwNi0xMDE0LTQ1NjUtYWQ0ZC02MDE0NDQxMTM5MGQiLCJ1c2VybmFtZSI6ImJlbmNoX3N2XzAwMDIwIiwiZW1haWwiOiJiZW5jaF9zdl8wMDAyMEBiZW5jaG1hcmsuaW52YWxpZCIsInJvbGUiOiJzdHVkZW50IiwianRpIjoiMmRjOWIzYjMtYWE1NC00YTExLWE1M2MtN2RlY2JlYjEzNmUxIiwiaWF0IjoxNzkyNTUxNTIxLCJleHAiOjE3OTI1NTUxMjF9.yCa_dt4NdS-KVgnC7sXuNbHFpRf8pc5NJ_fcoTC3GXg"
+    ]
+  },
+  "root_group": {
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": []
+  },
+  "options": {
+    "noColor": true,
+    "summaryTrendStats": [
+      "avg",
+      "min",
+      "med",
+      "p(50)",
+      "p(95)",
+      "p(99)",
+      "max",
+      "count"
+    ],
+    "summaryTimeUnit": ""
+  }
+}

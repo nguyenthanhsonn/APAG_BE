@@ -22,6 +22,15 @@ export const authProfileUserSelect = {
   isActive: true,
 } satisfies Prisma.UserSelect;
 
+// Principal hiện tại: query tối thiểu cho authorization, không lấy password/token hash.
+export const authorizationUserSelect = {
+  ...authProfileUserSelect,
+  deletedAt: true,
+} satisfies Prisma.UserSelect;
+export type AuthorizationUser = Prisma.UserGetPayload<{
+  select: typeof authorizationUserSelect;
+}>;
+
 // Dùng để đăng nhập - tìm theo username, nhưng vẫn lấy kèm email để đưa vào JWT payload.
 export const loginUserSelect = {
   id: true,
