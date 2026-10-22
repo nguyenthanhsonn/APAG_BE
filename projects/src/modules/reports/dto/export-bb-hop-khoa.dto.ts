@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   Allow,
   IsArray,
+  ArrayMaxSize,
   IsIn,
   IsInt,
   IsOptional,
@@ -108,6 +109,9 @@ export class ExportBbHopKhoaDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(500, {
+    message: 'Biên bản đồng bộ chỉ hỗ trợ tối đa 500 sinh viên',
+  })
   @ValidateNested({ each: true })
   @Type(() => BbHopKhoaStudentDto)
   students?: BbHopKhoaStudentDto[];

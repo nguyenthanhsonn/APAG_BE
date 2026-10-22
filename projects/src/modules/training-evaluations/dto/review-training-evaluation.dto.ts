@@ -1,3 +1,4 @@
+import { ExpectedVersionDto } from './expected-version.dto';
 import {
   IsIn,
   IsInt,
@@ -17,11 +18,13 @@ export type ReviewAction = (typeof REVIEW_ACTIONS)[number];
  * `classScore` chỉ áp dụng khi lớp/CVHT duyệt (bắt buộc — kiểm tra ở service vì
  * phụ thuộc role người gọi, DTO không biết role). `comment` bắt buộc khi từ chối.
  */
-export class ReviewTrainingEvaluationDto {
+export class ReviewTrainingEvaluationDto extends ExpectedVersionDto {
   @IsIn(REVIEW_ACTIONS)
   action: ReviewAction;
 
-  @ValidateIf((dto: ReviewTrainingEvaluationDto) => dto.classScore !== undefined)
+  @ValidateIf(
+    (dto: ReviewTrainingEvaluationDto) => dto.classScore !== undefined,
+  )
   @IsInt()
   @Min(0)
   @Max(100)

@@ -1,0 +1,2 @@
+ALTER TABLE "evaluation_forms"
+ADD COLUMN "version" INTEGER NOT NULL DEFAULT 0;

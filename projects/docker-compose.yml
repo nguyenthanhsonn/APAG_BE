@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-apag}
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASS:-2805}
+      POSTGRES_PASSWORD: ${DB_PASS:?Set DB_PASS in .env}
     ports:
       - "${DB_PUBLISHED_PORT:-15432}:5432"
     volumes:
@@ -18,6 +18,17 @@ services:
       timeout: 5s
       retries: 20
 
+  redis:
+    image: redis:8.10.2-alpine
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "always", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction"]
+    volumes: ["redis-state:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   backend:
     build:
       context: .
@@ -27,20 +38,49 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
+      redis:
+        condition: service_healthy
+    environment: &backend-environment
       NODE_ENV: production
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASS:-2805}@db:5432/${DB_NAME:-apag}?schema=public
-      DIRECT_URL: postgresql://${DB_USER:-postgres}:${DB_PASS:-2805}@db:5432/${DB_NAME:-apag}?schema=public
+      REDIS_URL: ${REDIS_DOCKER_URL:-redis://redis:6379}
+      REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-apag:}
+      REDIS_COMMAND_TIMEOUT_MS: ${REDIS_COMMAND_TIMEOUT_MS:-2000}
+      DATABASE_URL: ""
+      DIRECT_URL: ""
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-apag}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:?Set DB_PASS in .env}
+      DB_SCHEMA: ${DB_SCHEMA:-public}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      DB_POOL_IDLE_TIMEOUT: ${DB_POOL_IDLE_TIMEOUT:-30000}
+      DB_POOL_CONNECTION_TIMEOUT: ${DB_POOL_CONNECTION_TIMEOUT:-2000}
       PRISMA_CONNECT_ON_INIT: ${PRISMA_CONNECT_ON_INIT:-true}
-      BACKEND_PORT: ${BACKEND_PORT:-5050}
+      BACKEND_PORT: 5050
       BACKEND_HOST: 0.0.0.0
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       STUDENT_PORTAL_URL: ${STUDENT_PORTAL_URL:-http://localhost:3000/login}
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      DUMMY_PASSWORD_HASH: ${DUMMY_PASSWORD_HASH}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      DB_SLOW_QUERY_MS: ${DB_SLOW_QUERY_MS:-500}
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-apag-backend}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-http://host.docker.internal:4318/v1/traces}
+      OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
+      PASSWORD_RESET_URL: ${PASSWORD_RESET_URL:-}
+      DUMMY_PASSWORD_HASH: ${DUMMY_PASSWORD_HASH:-}
+      REPORT_EXPORT_DIR: /app/.local/report-exports
+      REPORT_RETENTION_SECONDS: ${REPORT_RETENTION_SECONDS:-86400}
+      QUEUE_BACKOFF_MS: ${QUEUE_BACKOFF_MS:-1000}
+      QUEUE_ENCRYPTION_KEY: ${QUEUE_ENCRYPTION_KEY:-}
+      EMAIL_WORKER_CONCURRENCY: ${EMAIL_WORKER_CONCURRENCY:-3}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
@@ -49,8 +89,32 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-CSMTS}
+      SMTP_CLIENT_NAME: ${SMTP_CLIENT_NAME:-localhost}
     ports:
       - "${BACKEND_PORT:-5050}:5050"
+    volumes: ["report-exports:/app/.local/report-exports"]
+
+  worker:
+    stop_grace_period: 180s
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["pnpm", "worker:start"]
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *backend-environment
+      DB_POOL_MAX: ${WORKER_DB_POOL_MAX:-3}
+      WORKER_HOST: 0.0.0.0
+      WORKER_METRICS_PORT: 5051
+    ports: ["127.0.0.1:${WORKER_METRICS_PORT:-5051}:5051"]
+    volumes: ["report-exports:/app/.local/report-exports"]
 
 volumes:
   csmts-postgres-data:
+  redis-state:
+  report-exports:

@@ -1,3 +1,5 @@
+import { RedisModule } from './infrastructure/cache/redis.module';
+import { ObservabilityModule } from './observability/observability.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'node:path';
@@ -24,15 +26,14 @@ import { UsersModule } from './modules/users/users.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: [
-        join(process.cwd(), '.env'),
-        join(process.cwd(), '../../.env'),
-      ],
+      envFilePath: [join(__dirname, '..', '.env')],
       isGlobal: true,
       cache: true,
       load: [appConfig],
       validate: validateEnvironment,
     }),
+    ObservabilityModule,
+    RedisModule,
     PrismaModule,
     AdminClassesModule,
     AdminFacultiesModule,

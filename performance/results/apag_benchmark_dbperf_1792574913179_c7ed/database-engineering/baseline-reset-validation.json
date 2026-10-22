@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "sourceDatabase": "apag_benchmark_dbperf_1792574913179_c7ed",
+  "databaseName": "apag_benchmark_dbperf_1792575845250_4457",
+  "resetOnlyNewClone": true,
+  "beforeIndexes": 0,
+  "afterIndexes": 2,
+  "migrationReplaySucceeded": true
+}

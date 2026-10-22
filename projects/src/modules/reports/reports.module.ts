@@ -1,3 +1,5 @@
+import { QueueModule } from '../../infrastructure/queue/queue.module';
+import { ReportJobsService } from './report-jobs.service';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../database/prisma.module';
 import { BbHopLopExportService } from './export/bb-hop-lop-export.service';
@@ -8,10 +10,11 @@ import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, QueueModule],
   controllers: [ReportsController],
   providers: [
     ReportsService,
+    ReportJobsService,
     PdfReportExportService,
     BbHopLopExportService,
     BbHopKhoaExportService,

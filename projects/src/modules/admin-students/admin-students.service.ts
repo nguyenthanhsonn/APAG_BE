@@ -1,3 +1,10 @@
+import { ProfileCacheService } from '../../infrastructure/cache/profile-cache.service';
+import { safeError } from '../../observability/safe-log';
+import { normalizeUsername } from '../../common/helpers/username.helper';
+import {
+  assertUserIdentifiersAvailable,
+  throwBusinessUniqueConflict,
+} from '../../common/helpers/business-uniqueness.helper';
 import {
   BadRequestException,
   ConflictException,
@@ -43,6 +50,7 @@ export class AdminStudentsService {
     private readonly prisma: PrismaService,
     private readonly tokenStore: AuthTokenStoreService,
     private readonly accountMailService: StudentAccountMailService,
+    private readonly profiles: ProfileCacheService,
   ) {}
 
   /**
@@ -162,13 +170,18 @@ export class AdminStudentsService {
       await this.assertStudentCodeAvailable(dto.studentCode);
     }
 
+    const username = normalizeUsername(dto.username);
+    await assertUserIdentifiersAvailable(this.prisma, {
+      username,
+      email: normalizeEmail(dto.email),
+    });
     const passwordHash = await bcrypt.hash(dto.password, PASSWORD_SALT_ROUNDS);
 
     try {
       const studentId = await this.prisma.$transaction(async (tx) => {
         const student = await tx.user.create({
           data: {
-            username: dto.username,
+            username,
             email: normalizeEmail(dto.email),
             fullName: dto.fullName.trim(),
             passwordHash,
@@ -198,7 +211,8 @@ export class AdminStudentsService {
 
       return {
         ...response,
-        accountEmailSent: mailResult.sent,
+        accountEmailSent: false, // SMTP delivery is asynchronous.
+        accountEmailQueued: mailResult.sent,
         accountEmailError: mailResult.error,
       };
     } catch (error) {
@@ -230,6 +244,18 @@ export class AdminStudentsService {
       dto.studentCode,
     );
 
+    await assertUserIdentifiersAvailable(
+      this.prisma,
+      {
+        username:
+          dto.username !== undefined
+            ? normalizeUsername(dto.username)
+            : undefined,
+        email: dto.email !== undefined ? normalizeEmail(dto.email) : undefined,
+      },
+      id,
+    );
+
     const activeStateData =
       dto.isActive !== undefined
         ? buildAccountActiveStateData(dto.isActive)
@@ -243,7 +269,9 @@ export class AdminStudentsService {
             ...(dto.fullName !== undefined && {
               fullName: dto.fullName.trim(),
             }),
-            ...(dto.username !== undefined && { username: dto.username }),
+            ...(dto.username !== undefined && {
+              username: normalizeUsername(dto.username),
+            }),
             ...(dto.email !== undefined && {
               email: normalizeEmail(dto.email),
             }),
@@ -279,8 +307,9 @@ export class AdminStudentsService {
       });
 
       if (dto.isActive === false) {
-        this.tokenStore.revokeUserTokensIssuedBefore(id);
+        await this.tokenStore.revokeUserTokensIssuedBefore(id);
       }
+      await this.profiles.invalidate(id);
 
       return await this.findOne(id);
     } catch (error) {
@@ -318,7 +347,8 @@ export class AdminStudentsService {
       }
     });
 
-    this.tokenStore.revokeUserTokensIssuedBefore(id);
+    await this.tokenStore.revokeUserTokensIssuedBefore(id);
+    await this.profiles.invalidate(id);
 
     return this.findOne(id);
   }
@@ -397,7 +427,7 @@ export class AdminStudentsService {
     excludeStudentId?: string,
   ): Promise<void> {
     const existing = await this.prisma.classStudent.findFirst({
-      where: { studentCode, deletedAt: null },
+      where: { studentCode },
       select: { studentId: true },
     });
 
@@ -439,20 +469,7 @@ export class AdminStudentsService {
       return;
     }
 
-    if (error.code === 'P2002') {
-      const target =
-        (error.meta?.target as string[] | undefined)?.join(',') ?? '';
-
-      if (target.includes('student_code')) {
-        throw new ConflictException('Mã sinh viên đã tồn tại');
-      }
-
-      if (target.includes('username')) {
-        throw new ConflictException('Tên đăng nhập đã tồn tại');
-      }
-
-      throw new ConflictException('Email đã tồn tại');
-    }
+    throwBusinessUniqueConflict(error);
 
     if (error.code === 'P2025') {
       throw new NotFoundException('Không tìm thấy hồ sơ sinh viên');
@@ -481,9 +498,10 @@ export class AdminStudentsService {
 
       return { sent: true, error: null };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Gửi email tài khoản thất bại';
-      this.logger.error(`Gửi email tài khoản sinh viên thất bại: ${message}`);
+      this.logger.error({
+        event: 'mail.student_account_failed',
+        error: safeError(error),
+      });
 
       return {
         sent: false,

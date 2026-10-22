@@ -1,0 +1,259 @@
+{
+  "metadata": {
+    "runId": "2026-10-21T025815917Z",
+    "startedAt": "2026-10-21T02:58:15.921Z",
+    "synthetic": true,
+    "databaseName": "apag_benchmark_20261021_69a289",
+    "sourceSha256": "37f0a230771e999863d1b29adda95868e1ea53076b6e2e646e15d76b25f3a1cd",
+    "gitHead": "4876b15aa63e8b79945aae626bd6fc3b0be53d5b",
+    "dirtyWorktree": true,
+    "node": "v24.20.0",
+    "k6": "k6 v2.3.0 (commit/e088784614, go1.26.8, darwin/arm64)",
+    "platform": "darwin 25.6.0 arm64",
+    "cpu": "Apple M4",
+    "logicalCpus": 10,
+    "memoryBytes": 17179869184,
+    "loadAverageAtStart": [
+      2.244140625,
+      2.1884765625,
+      2.83837890625
+    ],
+    "dataset": {
+      "users": 10492,
+      "faculties": 10,
+      "majors": 20,
+      "classes": 400,
+      "class_students": 10000,
+      "semesters": 3,
+      "evaluation_forms": 30000,
+      "form_criteria_scores": 300000,
+      "evidences": 10002,
+      "notifications": 10000
+    },
+    "postgres": {
+      "postgres": "PostgreSQL 17.9 on x86_64-apple-darwin24.6.0, compiled by Apple clang version 17.0.0 (clang-1700.6.3.2), 64-bit",
+      "bytes": "97810099",
+      "max_connections": "100"
+    },
+    "settings": {
+      "durationSeconds": 2,
+      "warmupSeconds": 1,
+      "thinkTimeSeconds": 0.1,
+      "model": "closed constant-vus",
+      "tracing": false,
+      "logging": "info JSON to file",
+      "poolMax": "pg default 10",
+      "uvThreadpoolSize": "default 4",
+      "backendPort": 50509,
+      "resourceIntervalSeconds": 1
+    },
+    "cases": [
+      {
+        "name": "login_50",
+        "mode": "login",
+        "vus": 50
+      },
+      {
+        "name": "evaluations_semester",
+        "mode": "evaluations_semester",
+        "vus": 50
+      },
+      {
+        "name": "write",
+        "mode": "write",
+        "vus": 50
+      },
+      {
+        "name": "conflict",
+        "mode": "conflict",
+        "vus": 20
+      },
+      {
+        "name": "reports_overview",
+        "mode": "reports_overview",
+        "vus": 20
+      },
+      {
+        "name": "export",
+        "mode": "export",
+        "vus": 5
+      }
+    ],
+    "finishedAt": "2026-10-21T02:59:01.829Z",
+    "complete": true
+  },
+  "results": [
+    {
+      "case": "login_50",
+      "vus": 50,
+      "startedAt": "2026-10-21T02:58:20.876Z",
+      "finishedAt": "2026-10-21T02:58:23.611Z",
+      "requests": 178,
+      "activeWindowSeconds": 2.5709970703125,
+      "rps": 69.2338400752687,
+      "p50Ms": 610.6579999999999,
+      "p95Ms": 692.1483499999999,
+      "p99Ms": 708.14707,
+      "errorRate": 0,
+      "checksRate": 1,
+      "expectedConflicts": 0,
+      "concurrencyInvariantFailureRate": 0,
+      "thresholdsPassed": true,
+      "resources": {
+        "samples": 2,
+        "cpuMeanCores": 3.374870596006562,
+        "cpuMaxCores": 4.017284327182146,
+        "rssMaxBytes": 338296832,
+        "dbPoolTotalMax": 10,
+        "dbPoolWaitingMax": 0,
+        "dbConnectionsMax": 11,
+        "eventLoopLagMaxSeconds": 0.02109004255319149
+      }
+    },
+    {
+      "case": "evaluations_semester",
+      "vus": 50,
+      "startedAt": "2026-10-21T02:58:28.296Z",
+      "finishedAt": "2026-10-21T02:58:30.468Z",
+      "requests": 900,
+      "activeWindowSeconds": 1.957677978515625,
+      "rps": 459.7283158297613,
+      "p50Ms": 3.117,
+      "p95Ms": 39.352799999999995,
+      "p99Ms": 47.21531,
+      "errorRate": 0,
+      "checksRate": 1,
+      "expectedConflicts": 0,
+      "concurrencyInvariantFailureRate": 0,
+      "thresholdsPassed": true,
+      "resources": {
+        "samples": 2,
+        "cpuMeanCores": 0.37224415431057395,
+        "cpuMaxCores": 0.5650834736630757,
+        "rssMaxBytes": 388415488,
+        "dbPoolTotalMax": 10,
+        "dbPoolWaitingMax": 37,
+        "dbConnectionsMax": 11,
+        "eventLoopLagMaxSeconds": 0.020883114666666668
+      }
+    },
+    {
+      "case": "write",
+      "vus": 50,
+      "startedAt": "2026-10-21T02:58:35.873Z",
+      "finishedAt": "2026-10-21T02:58:38.767Z",
+      "requests": 1698,
+      "activeWindowSeconds": 2.003320068359375,
+      "rps": 847.5929667048073,
+      "p50Ms": 4.883,
+      "p95Ms": 44.802899999999994,
+      "p99Ms": 68.32127999999999,
+      "errorRate": 0,
+      "checksRate": 1,
+      "expectedConflicts": 0,
+      "concurrencyInvariantFailureRate": 0,
+      "thresholdsPassed": true,
+      "resources": {
+        "samples": 3,
+        "cpuMeanCores": 1.559530778398605,
+        "cpuMaxCores": 2.9435195123478644,
+        "rssMaxBytes": 412696576,
+        "dbPoolTotalMax": 10,
+        "dbPoolWaitingMax": 4,
+        "dbConnectionsMax": 11,
+        "eventLoopLagMaxSeconds": 0.020980583489361705
+      },
+      "operationLatency": {
+        "count": 849,
+        "avg": 10.901862190812723,
+        "min": 1.389,
+        "med": 6.431,
+        "p(50)": 6.431,
+        "p(95)": 42.32079999999997,
+        "p(99)": 62.02848,
+        "max": 86.911
+      }
+    },
+    {
+      "case": "conflict",
+      "vus": 20,
+      "startedAt": "2026-10-21T02:58:43.686Z",
+      "finishedAt": "2026-10-21T02:58:46.131Z",
+      "requests": 1352,
+      "activeWindowSeconds": 2.00660302734375,
+      "rps": 673.7755209059543,
+      "p50Ms": 4.5275,
+      "p95Ms": 24.9378,
+      "p99Ms": 34.25523,
+      "errorRate": 0,
+      "checksRate": 1,
+      "expectedConflicts": 338,
+      "concurrencyInvariantFailureRate": 0,
+      "thresholdsPassed": true,
+      "resources": {
+        "samples": 3,
+        "cpuMeanCores": 0.7845980115057977,
+        "cpuMaxCores": 1.6507280245928981,
+        "rssMaxBytes": 387350528,
+        "dbPoolTotalMax": 10,
+        "dbPoolWaitingMax": 0,
+        "dbConnectionsMax": 11,
+        "eventLoopLagMaxSeconds": 0.020922890893617024
+      }
+    },
+    {
+      "case": "reports_overview",
+      "vus": 20,
+      "startedAt": "2026-10-21T02:58:50.829Z",
+      "finishedAt": "2026-10-21T02:58:53.001Z",
+      "requests": 380,
+      "activeWindowSeconds": 1.954889892578125,
+      "rps": 194.38434944223525,
+      "p50Ms": 4.9055,
+      "p95Ms": 18.978049999999996,
+      "p99Ms": 29.30935,
+      "errorRate": 0,
+      "checksRate": 1,
+      "expectedConflicts": 0,
+      "concurrencyInvariantFailureRate": 0,
+      "thresholdsPassed": true,
+      "resources": {
+        "samples": 2,
+        "cpuMeanCores": 0.30760174972432847,
+        "cpuMaxCores": 0.3567597999699019,
+        "rssMaxBytes": 321404928,
+        "dbPoolTotalMax": 10,
+        "dbPoolWaitingMax": 0,
+        "dbConnectionsMax": 11,
+        "eventLoopLagMaxSeconds": 0.020793213276595744
+      }
+    },
+    {
+      "case": "export",
+      "vus": 5,
+      "startedAt": "2026-10-21T02:58:57.664Z",
+      "finishedAt": "2026-10-21T02:58:59.827Z",
+      "requests": 90,
+      "activeWindowSeconds": 1.9539990234375,
+      "rps": 46.0593884236804,
+      "p50Ms": 11.702,
+      "p95Ms": 18.691049999999994,
+      "p99Ms": 22.541359999999997,
+      "errorRate": 0,
+      "checksRate": 1,
+      "expectedConflicts": 0,
+      "concurrencyInvariantFailureRate": 0,
+      "thresholdsPassed": true,
+      "resources": {
+        "samples": 2,
+        "cpuMeanCores": 0.19981562607352005,
+        "cpuMaxCores": 0.31142485637366696,
+        "rssMaxBytes": 351928320,
+        "dbPoolTotalMax": 10,
+        "dbPoolWaitingMax": 0,
+        "dbConnectionsMax": 11,
+        "eventLoopLagMaxSeconds": 0.021304898782608696
+      }
+    }
+  ]
+}

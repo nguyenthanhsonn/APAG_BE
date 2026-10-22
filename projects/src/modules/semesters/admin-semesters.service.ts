@@ -1,3 +1,6 @@
+import { lockSemesterActivation } from './semester-activation';
+import { throwBusinessUniqueConflict } from '../../common/helpers/business-uniqueness.helper';
+import { notificationDedupeKey } from '../notifications/create-notification-once';
 import {
   BadRequestException,
   ConflictException,
@@ -87,32 +90,38 @@ export class AdminSemestersService {
     const endDate = data.endDate;
 
     if (!startDate || !endDate) {
-      throw new BadRequestException('Ngày bắt đầu và ngày kết thúc là bắt buộc');
+      throw new BadRequestException(
+        'Ngày bắt đầu và ngày kết thúc là bắt buộc',
+      );
     }
 
     await this.validateNoOverlap(startDate, endDate);
     await this.assertUniqueSemester(dto.year, semester);
 
     try {
-      const created = await this.prisma.$transaction(async (tx) => {
-        if (dto.isActive) {
-          await this.deactivateActiveSemestersAndLockForms(tx);
-        }
+      const created = await this.prisma.$transaction(
+        async (tx) => {
+          await lockSemesterActivation(tx);
+          if (dto.isActive) {
+            await this.deactivateActiveSemestersAndLockForms(tx);
+          }
 
-        return tx.semester.create({
-          data: {
-            year: dto.year,
-            semester,
-            startDate,
-            endDate,
-            studentDeadline: data.studentDeadline,
-            classDeadline: data.classDeadline,
-            facultyDeadline: data.facultyDeadline,
-            isActive: dto.isActive ?? false,
-          },
-          select: semesterSelect,
-        });
-      });
+          return tx.semester.create({
+            data: {
+              year: dto.year,
+              semester,
+              startDate,
+              endDate,
+              studentDeadline: data.studentDeadline,
+              classDeadline: data.classDeadline,
+              facultyDeadline: data.facultyDeadline,
+              isActive: dto.isActive ?? false,
+            },
+            select: semesterSelect,
+          });
+        },
+        { isolationLevel: 'ReadCommitted' },
+      );
 
       clearSemesterCache();
       return mapToSemesterResponse(created);
@@ -156,53 +165,60 @@ export class AdminSemestersService {
       await this.validateNoOverlap(nextData.startDate, nextData.endDate, id);
     }
 
+    let wasActive = current.isActive;
     try {
       let closedSemesters: SemesterNotificationRecord[] = [];
-      const updated = await this.prisma.$transaction(async (tx) => {
-        if (dto.isActive === true && !current.isActive) {
-          closedSemesters = await this.deactivateActiveSemestersAndLockForms(
-            tx,
-            id,
-          );
-          await this.unlockEvaluationFormsBySemesterIds(tx, [id]);
-        }
+      const updated = await this.prisma.$transaction(
+        async (tx) => {
+          await lockSemesterActivation(tx);
+          // Đọc lại sau khi có khóa: request khác có thể vừa chuyển active trong lúc ta chờ.
+          wasActive = (await this.findRecordById(id, tx)).isActive;
+          if (dto.isActive === true && !wasActive) {
+            closedSemesters = await this.deactivateActiveSemestersAndLockForms(
+              tx,
+              id,
+            );
+            await this.unlockEvaluationFormsBySemesterIds(tx, [id]);
+          }
 
-        if (dto.isActive === false && current.isActive) {
-          await this.lockEvaluationFormsBySemesterIds(tx, [id]);
-        }
+          if (dto.isActive === false && wasActive) {
+            await this.lockEvaluationFormsBySemesterIds(tx, [id]);
+          }
 
-        return tx.semester.update({
-          where: { id },
-          data: {
-            ...(dto.year !== undefined && { year: nextYear }),
-            ...(dto.semester !== undefined && { semester: nextSemester }),
-            ...(dto.startDate !== undefined && { startDate: nextData.startDate }),
-            ...(dto.endDate !== undefined && { endDate: nextData.endDate }),
-            ...(dto.studentDeadline !== undefined && {
-              studentDeadline: nextData.studentDeadline,
-            }),
-            ...(dto.classDeadline !== undefined && {
-              classDeadline: nextData.classDeadline,
-            }),
-            ...(dto.facultyDeadline !== undefined && {
-              facultyDeadline: nextData.facultyDeadline,
-            }),
-            ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-          },
-          select: semesterSelect,
-        });
-      });
+          return tx.semester.update({
+            where: { id },
+            data: {
+              ...(dto.year !== undefined && { year: nextYear }),
+              ...(dto.semester !== undefined && { semester: nextSemester }),
+              ...(dto.startDate !== undefined && {
+                startDate: nextData.startDate,
+              }),
+              ...(dto.endDate !== undefined && { endDate: nextData.endDate }),
+              ...(dto.studentDeadline !== undefined && {
+                studentDeadline: nextData.studentDeadline,
+              }),
+              ...(dto.classDeadline !== undefined && {
+                classDeadline: nextData.classDeadline,
+              }),
+              ...(dto.facultyDeadline !== undefined && {
+                facultyDeadline: nextData.facultyDeadline,
+              }),
+              ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+            },
+            select: semesterSelect,
+          });
+        },
+        { isolationLevel: 'ReadCommitted' },
+      );
 
       clearSemesterCache();
       this.notifyStudentsAfterActiveChange(updated, {
         opened: false,
         closedSemesters:
-          dto.isActive === false && current.isActive
-            ? [current]
-            : closedSemesters,
+          dto.isActive === false && wasActive ? [current] : closedSemesters,
       });
 
-      if (dto.isActive === true && !current.isActive) {
+      if (dto.isActive === true && !wasActive) {
         this.notifyStudentsSemesterOpened(updated).catch((err: unknown) =>
           this.logger.error(
             'Gửi thông báo mở kỳ đánh giá thất bại',
@@ -218,51 +234,62 @@ export class AdminSemestersService {
     }
   }
 
-  async toggleActive(
-    id: string,
-    isActive: boolean,
-  ): Promise<SemesterResponse> {
-    const target = await this.findRecordById(id);
+  async toggleActive(id: string, isActive: boolean): Promise<SemesterResponse> {
     let closedSemesters: SemesterNotificationRecord[] = [];
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      if (isActive) {
-        closedSemesters = await this.deactivateActiveSemestersAndLockForms(
-          tx,
-          id,
+    try {
+      const { target, updated } = await this.prisma.$transaction(
+        async (tx) => {
+          await lockSemesterActivation(tx);
+          const target = await this.findRecordById(id, tx);
+          if (isActive) {
+            closedSemesters = await this.deactivateActiveSemestersAndLockForms(
+              tx,
+              id,
+            );
+            await this.unlockEvaluationFormsBySemesterIds(tx, [id]);
+          } else {
+            await this.lockEvaluationFormsBySemesterIds(tx, [id]);
+          }
+
+          const updated = await tx.semester.update({
+            where: { id },
+            data: { isActive },
+            select: semesterSelect,
+          });
+          return { target, updated };
+        },
+        { isolationLevel: 'ReadCommitted' },
+      );
+
+      clearSemesterCache();
+      this.notifyStudentsAfterActiveChange(updated, {
+        opened: false,
+        closedSemesters:
+          !isActive && target.isActive ? [target] : closedSemesters,
+      });
+
+      if (isActive && !target.isActive) {
+        this.notifyStudentsSemesterOpened(updated).catch((err: unknown) =>
+          this.logger.error(
+            'Gửi thông báo mở kỳ đánh giá thất bại',
+            err instanceof Error ? err.stack : String(err),
+          ),
         );
-        await this.unlockEvaluationFormsBySemesterIds(tx, [id]);
-      } else {
-        await this.lockEvaluationFormsBySemesterIds(tx, [id]);
       }
 
-      return tx.semester.update({
-        where: { id },
-        data: { isActive },
-        select: semesterSelect,
-      });
-    });
-
-    clearSemesterCache();
-    this.notifyStudentsAfterActiveChange(updated, {
-      opened: false,
-      closedSemesters: !isActive && target.isActive ? [target] : closedSemesters,
-    });
-
-    if (isActive && !target.isActive) {
-      this.notifyStudentsSemesterOpened(updated).catch((err: unknown) =>
-        this.logger.error(
-          'Gửi thông báo mở kỳ đánh giá thất bại',
-          err instanceof Error ? err.stack : String(err),
-        ),
-      );
+      return mapToSemesterResponse(updated);
+    } catch (error) {
+      this.handleKnownSemesterError(error);
+      throw error;
     }
-
-    return mapToSemesterResponse(updated);
   }
 
-  private async findRecordById(id: string) {
-    const semester = await this.prisma.semester.findUnique({
+  private async findRecordById(
+    id: string,
+    database: Prisma.TransactionClient = this.prisma,
+  ) {
+    const semester = await database.semester.findUnique({
       where: { id },
       select: semesterSelect,
     });
@@ -345,19 +372,20 @@ export class AdminSemestersService {
         parseOptionalDateOnly(dto.startDate, 'Ngày bắt đầu') ??
         fallback?.startDate,
       endDate:
-        parseOptionalDateOnly(dto.endDate, 'Ngày kết thúc') ?? fallback?.endDate,
+        parseOptionalDateOnly(dto.endDate, 'Ngày kết thúc') ??
+        fallback?.endDate,
       studentDeadline:
         dto.studentDeadline !== undefined
           ? parseOptionalDateOnly(dto.studentDeadline, 'Hạn sinh viên')
-          : fallback?.studentDeadline ?? null,
+          : (fallback?.studentDeadline ?? null),
       classDeadline:
         dto.classDeadline !== undefined
           ? parseOptionalDateOnly(dto.classDeadline, 'Hạn cấp lớp')
-          : fallback?.classDeadline ?? null,
+          : (fallback?.classDeadline ?? null),
       facultyDeadline:
         dto.facultyDeadline !== undefined
           ? parseOptionalDateOnly(dto.facultyDeadline, 'Hạn cấp khoa')
-          : fallback?.facultyDeadline ?? null,
+          : (fallback?.facultyDeadline ?? null),
     };
   }
 
@@ -369,7 +397,9 @@ export class AdminSemestersService {
     facultyDeadline?: Date | null;
   }): void {
     if (!data.startDate || !data.endDate) {
-      throw new BadRequestException('Ngày bắt đầu và ngày kết thúc là bắt buộc');
+      throw new BadRequestException(
+        'Ngày bắt đầu và ngày kết thúc là bắt buộc',
+      );
     }
 
     const orderedDates = [
@@ -444,6 +474,7 @@ export class AdminSemestersService {
         isLocked: false,
       },
       data: {
+        version: { increment: 1 },
         isLocked: true,
         lockedAt: new Date(),
         lockedBy: null,
@@ -465,6 +496,7 @@ export class AdminSemestersService {
         isLocked: true,
       },
       data: {
+        version: { increment: 1 },
         isLocked: false,
         lockedAt: null,
         lockedBy: null,
@@ -483,15 +515,14 @@ export class AdminSemestersService {
       return;
     }
 
-    void this.createSemesterChangeNotifications(
-      openedSemester,
-      options,
-    ).catch((error: unknown) => {
-      this.logger.error(
-        'Gửi thông báo chuyển học kỳ thất bại',
-        error instanceof Error ? error.stack : String(error),
-      );
-    });
+    void this.createSemesterChangeNotifications(openedSemester, options).catch(
+      (error: unknown) => {
+        this.logger.error(
+          'Gửi thông báo chuyển học kỳ thất bại',
+          error instanceof Error ? error.stack : String(error),
+        );
+      },
+    );
   }
 
   private async createSemesterChangeNotifications(
@@ -525,6 +556,10 @@ export class AdminSemestersService {
         ...students.map((student) => ({
           userId: student.id,
           type: NotificationType.EVALUATION_PERIOD_CLOSED,
+          dedupeKey: notificationDedupeKey(student.id, [
+            'semester-closed',
+            closedSemester.id,
+          ]),
           title,
           content,
         })),
@@ -535,10 +570,14 @@ export class AdminSemestersService {
       return;
     }
 
-    await this.prisma.notification.createMany({ data: notifications });
-    this.emitNotificationRefreshInBatches(
-      students.map((student) => student.id),
-    );
+    const created = await this.prisma.notification.createManyAndReturn({
+      data: notifications,
+      skipDuplicates: true,
+      select: { userId: true },
+    });
+    this.emitNotificationRefreshInBatches([
+      ...new Set(created.map((row) => row.userId)),
+    ]);
   }
 
   private async notifyStudentsSemesterOpened(
@@ -570,16 +609,20 @@ export class AdminSemestersService {
     const notifications = students.map((student) => ({
       userId: student.id,
       type: NotificationType.NEW_EVALUATION_PERIOD,
+      dedupeKey: notificationDedupeKey(student.id, [
+        'semester-opened',
+        semester.id,
+      ]),
       title,
       content,
     }));
 
-    await this.prisma.notification.createMany({ data: notifications });
-
-    // Loop through each student to emit socket refresh signal
-    for (const student of students) {
-      this.notificationsGateway.emitRefresh(student.id);
-    }
+    const created = await this.prisma.notification.createManyAndReturn({
+      data: notifications,
+      skipDuplicates: true,
+      select: { userId: true },
+    });
+    this.emitNotificationRefreshInBatches(created.map((row) => row.userId));
   }
 
   private emitNotificationRefreshInBatches(
@@ -608,9 +651,7 @@ export class AdminSemestersService {
       return;
     }
 
-    if (error.code === 'P2002') {
-      throw new ConflictException('Học kỳ này đã tồn tại trong hệ thống');
-    }
+    throwBusinessUniqueConflict(error);
 
     if (error.code === 'P2025') {
       throw new NotFoundException('Không tìm thấy học kỳ');

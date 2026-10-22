@@ -1,3 +1,4 @@
+import { safeError } from '../../observability/safe-log';
 import {
   ArgumentsHost,
   BadRequestException,
@@ -44,7 +45,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const message = resolveErrorMessage(body, status, validationErrors);
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logServerError(exception, request.url);
+      this.logServerError(exception);
     }
 
     const payload: ApiErrorResponse = {
@@ -60,18 +61,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json(payload);
   }
 
-  private logServerError(exception: unknown, path: string): void {
-    if (exception instanceof Error) {
-      this.logger.error(
-        `Lỗi chưa xử lý tại ${path}: ${exception.message}`,
-        exception.stack,
-      );
-      return;
-    }
-
-    this.logger.error(
-      `Lỗi chưa xử lý tại ${path}: ${JSON.stringify(exception)}`,
-    );
+  private logServerError(exception: unknown): void {
+    this.logger.error({
+      event: 'http.unhandled_error',
+      error: safeError(exception),
+    });
   }
 }
 

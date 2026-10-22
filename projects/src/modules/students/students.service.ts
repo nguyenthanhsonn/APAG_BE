@@ -1,3 +1,4 @@
+import { ProfileCacheService } from '../../infrastructure/cache/profile-cache.service';
 import {
   BadRequestException,
   Injectable,
@@ -18,48 +19,34 @@ import {
   type StudentProfileRecord,
 } from './selects/student.select';
 
-type CachedStudentProfile = {
-  profile: StudentProfile;
-  expiresAt: number;
-};
-
-const STUDENT_PROFILE_CACHE_TTL_MS = 30_000;
-const STUDENT_PROFILE_CACHE_MAX_SIZE = 1_000;
-
 @Injectable()
 export class StudentsService {
-  private readonly studentProfileCache = new Map<string, CachedStudentProfile>();
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly profiles: ProfileCacheService,
+  ) {}
 
   async getProfileStudent(userId: string): Promise<StudentProfile> {
-    const cachedProfile = this.studentProfileCache.get(userId);
-    const now = Date.now();
+    return this.profiles.getOrLoad(userId, 'student', async () => {
+      const student = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: studentProfileSelect,
+      });
 
-    if (cachedProfile && cachedProfile.expiresAt > now) {
-      return cachedProfile.profile;
-    }
+      if (!student) {
+        throw new NotFoundException('Không tìm thấy sinh viên');
+      }
 
-    if (cachedProfile) {
-      this.studentProfileCache.delete(userId);
-    }
+      const profile = mapStudentProfile(student);
 
-    const student = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: studentProfileSelect,
+      return profile;
     });
-
-    if (!student) {
-      throw new NotFoundException('Không tìm thấy sinh viên');
-    }
-
-    const profile = mapStudentProfile(student);
-    this.cacheStudentProfile(userId, profile, now);
-
-    return profile;
   }
 
-  async updateProfile(userId: string, dto: UpdateStudentContactDto): Promise<StudentProfile> {
+  async updateProfile(
+    userId: string,
+    dto: UpdateStudentContactDto,
+  ): Promise<StudentProfile> {
     const updateData: Prisma.UserUpdateInput = {
       ...(dto?.phone !== undefined ? { phone: dto.phone.trim() || null } : {}),
     };
@@ -76,7 +63,7 @@ export class StudentsService {
       });
 
       const profile = mapStudentProfile(student);
-      this.cacheStudentProfile(userId, profile, Date.now());
+      await this.profiles.invalidate(userId);
 
       return profile;
     } catch (error) {
@@ -90,25 +77,13 @@ export class StudentsService {
     }
   }
 
-  async getMyEvaluations(user: AuthenticatedUser): Promise<StudentEvaluationRecord[]> {
+  async getMyEvaluations(
+    user: AuthenticatedUser,
+  ): Promise<StudentEvaluationRecord[]> {
     return this.prisma.evaluationForm.findMany({
       where: { studentId: user.id },
       select: studentEvaluationSelect,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    });
-  }
-
-  private cacheStudentProfile(id: string, profile: StudentProfile, now: number): void {
-    if (this.studentProfileCache.size >= STUDENT_PROFILE_CACHE_MAX_SIZE) {
-      const oldestKey = this.studentProfileCache.keys().next().value;
-      if (oldestKey) {
-        this.studentProfileCache.delete(oldestKey);
-      }
-    }
-
-    this.studentProfileCache.set(id, {
-      profile,
-      expiresAt: now + STUDENT_PROFILE_CACHE_TTL_MS,
     });
   }
 }

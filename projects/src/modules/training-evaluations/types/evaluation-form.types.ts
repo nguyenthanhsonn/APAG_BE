@@ -12,6 +12,7 @@ export type ScoreParts = {
 
 // ─── List & Detail ────────────────────────────────────────────────────────────
 export type EvaluationListResponse = {
+  version: number;
   id: string;
   studentId: string;
   semester: ApiSemester;
@@ -75,6 +76,7 @@ export type EvaluationAttachmentResponse = {
 
 // ─── Admin: danh sách toàn hệ thống ───────────────────────────────────────────
 export type EvaluationAdminListItem = {
+  version: number;
   id: string;
   status: string;
   workflowStatus?: string;
@@ -96,6 +98,7 @@ export type EvaluationAdminListItem = {
 };
 
 export type EvaluationAdminApprovalListItem = {
+  version: number;
   id: string;
   status: string;
   workflowStatus?: string;
@@ -125,6 +128,7 @@ export type ReviewStepResponse = {
 };
 
 export type EvaluationStatusResponse = {
+  version: number;
   evaluationId: string;
   status: string;
   statusLabel: string;
@@ -155,6 +159,7 @@ export type StudyActivityResponse = {
 };
 
 export type StudyScoreResponse = {
+  version: number;
   evaluationId: string;
   regularScoreLevel: string | null;
   academicRank: string | null;
@@ -173,6 +178,7 @@ export type DisciplineViolationResponse = {
 };
 
 export type DisciplineScoreResponse = {
+  version: number;
   evaluationId: string;
   baseScore: number;
   violations: DisciplineViolationResponse[];
@@ -185,6 +191,7 @@ export type DisciplineScoreResponse = {
 
 // ─── Section: Mục III – Hoạt động (max 20đ) ──────────────────────────────────
 export type ActivityScoreResponse = {
+  version: number;
   evaluationId: string;
   politicalActivityLevel: string | null;
   cultureSportLevel: string | null;
@@ -199,6 +206,7 @@ export type ActivityScoreResponse = {
 
 // ─── Section: Mục IV – Cộng đồng (max 25đ) ───────────────────────────────────
 export type CommunityScoreResponse = {
+  version: number;
   evaluationId: string;
   lawComplianceLevel: string | null;
   volunteerActivityLevel: string | null;
@@ -211,6 +219,7 @@ export type CommunityScoreResponse = {
 
 // ─── Section: Mục V – Vai trò BCS/BCH (max 10đ) ─────────────────────────────
 export type RoleScoreResponse = {
+  version: number;
   evaluationId: string;
   studentRoleType: string | null;
   positionGroup: string | null;

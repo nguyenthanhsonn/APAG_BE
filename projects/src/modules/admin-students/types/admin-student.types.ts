@@ -31,5 +31,6 @@ export type AdminStudentResponse = {
   major: { id: string; code: string; name: string } | null;
   faculty: { id: string; code: string; name: string } | null;
   accountEmailSent?: boolean;
+  accountEmailQueued?: boolean;
   accountEmailError?: string | null;
 };

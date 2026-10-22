@@ -1,6 +1,7 @@
+import { ExpectedVersionsDto } from './expected-versions.dto';
 import { ArrayMinSize, IsArray, IsOptional, IsUUID } from 'class-validator';
 
-export class SubmitClassToFacultyDto {
+export class SubmitClassToFacultyDto extends ExpectedVersionsDto {
   @IsOptional()
   @IsUUID('4')
   semesterId?: string;

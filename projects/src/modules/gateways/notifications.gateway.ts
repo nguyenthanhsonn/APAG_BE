@@ -1,62 +1,144 @@
+import { type OnModuleDestroy } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import type { Server, Socket } from 'socket.io';
+import type { Namespace, Socket } from 'socket.io';
+import { JwtStrategy } from '../auth/strategies/jwt.strategy';
+import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import type { NotificationResponse } from '../notifications/types/notification.types';
+import { getMetrics } from '../../observability/metrics';
 
-type JoinNotificationRoomPayload = {
-  userId?: string;
+type NotificationSocket = Socket & {
+  data: { userId: string; role: string; claims: JwtPayload };
 };
 
-@WebSocketGateway({
-  namespace: 'notifications',
-  cors: {
-    origin: parseCorsOrigins(process.env.FRONTEND_URL) ?? true,
-    credentials: true,
-  },
-})
+@WebSocketGateway({ namespace: 'notifications' })
 export class NotificationsGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements
+    OnGatewayInit,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnModuleDestroy
 {
   @WebSocketServer()
-  private readonly server!: Server;
+  private readonly server!: Namespace;
+  private readonly timers = new Map<
+    string,
+    { expiry: NodeJS.Timeout; check: NodeJS.Timeout }
+  >();
 
-  handleConnection(client: Socket) {
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly strategy: JwtStrategy,
+  ) {}
+
+  afterInit(server: Namespace) {
+    // Namespace middleware runs BEFORE connection events or application message handlers.
+    server.use((client, next) => {
+      void this.authenticate(client as NotificationSocket).then(
+        () => next(),
+        () => {
+          // Do not expose verification errors, tokens or database details to clients/logs.
+          const error = new Error('Unauthorized') as Error & {
+            data: { status: number };
+          };
+          error.data = { status: 401 };
+          next(error);
+        },
+      );
+    });
+  }
+
+  private async authenticate(client: NotificationSocket) {
+    const auth = client.handshake.auth as Record<string, unknown>;
+    const token = auth?.token;
+    if (typeof token !== 'string' || !token || token.length > 8192)
+      throw new Error('Invalid token');
+    const claims = await this.jwt.verifyAsync<JwtPayload>(token, {
+      algorithms: ['HS256'],
+    });
+    if (
+      typeof claims.sub !== 'string' ||
+      !Number.isFinite(claims.exp) ||
+      claims.exp! <= Date.now() / 1000
+    )
+      throw new Error('Invalid claims');
+    // Reuse HTTP's shared revocation checks and current DB principal (role/lock/delete).
+    const user = await this.strategy.validate(claims);
+    client.data = { userId: user.id, role: user.role, claims };
+    await client.join(this.getUserRoom(user.id));
+  }
+
+  handleConnection(client: NotificationSocket) {
+    getMetrics().socketOpened(client.id);
+    // Expiry closes the connection even if it sends no events. Re-check lock/revocation
+    // every 15s; any Redis/DB failure closes the connection instead of using stale identity.
+    const expiry = setTimeout(
+      () => client.disconnect(true),
+      Math.min(
+        2147483647,
+        Math.max(1, client.data.claims.exp! * 1000 - Date.now()),
+      ),
+    );
+    let checking = false;
+    const check = setInterval(() => {
+      if (checking) return;
+      checking = true;
+      void this.strategy
+        .validate(client.data.claims)
+        .catch(() => client.disconnect(true))
+        .finally(() => {
+          checking = false;
+        });
+    }, 15000);
+    expiry.unref();
+    check.unref();
+    this.timers.set(client.id, { expiry, check });
     client.emit('notifications:connected', {
       socketId: client.id,
+      userId: client.data.userId,
     });
   }
 
   handleDisconnect(client: Socket) {
-    client.rooms.forEach((room) => {
-      if (room !== client.id) {
-        void client.leave(room);
-      }
-    });
+    getMetrics().socketClosed(client.id);
+    this.clearTimers(client.id);
   }
 
   @SubscribeMessage('notifications:join')
-  joinUserRoom(
-    @MessageBody() payload: JoinNotificationRoomPayload,
-    @ConnectedSocket() client: Socket,
+  async joinUserRoom(
+    @MessageBody() payload: unknown,
+    @ConnectedSocket() client: NotificationSocket,
   ) {
-    const userId = payload.userId?.trim();
-
-    if (!userId || !isUuid(userId)) {
+    // Compatibility event: clients may only re-join their own server-derived identity.
+    const requested =
+      payload && typeof payload === 'object'
+        ? (payload as { userId?: unknown }).userId
+        : undefined;
+    if (requested !== undefined && requested !== client.data.userId) {
       client.emit('notifications:error', {
-        message: 'userId không hợp lệ',
+        status: 403,
+        message: 'Không có quyền tham gia phòng này',
       });
       return;
     }
-
-    void client.join(this.getUserRoom(userId));
-    client.emit('notifications:joined', { userId });
+    try {
+      if (client.data.claims.exp! <= Date.now() / 1000)
+        throw new Error('Expired');
+      await this.strategy.validate(client.data.claims);
+      await client.join(this.getUserRoom(client.data.userId));
+      client.emit('notifications:joined', { userId: client.data.userId });
+    } catch {
+      client.disconnect(true);
+    }
   }
 
   emitNotification(userId: string, notification: NotificationResponse) {
@@ -64,31 +146,21 @@ export class NotificationsGateway
       .to(this.getUserRoom(userId))
       .emit('notifications:new', notification);
   }
-
   emitRefresh(userId: string) {
     this.server.to(this.getUserRoom(userId)).emit('notifications:refresh');
   }
-
   private getUserRoom(userId: string) {
     return `user:${userId}`;
   }
-}
-
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
-}
-
-function parseCorsOrigins(value: string | undefined): string[] | undefined {
-  if (!value) {
-    return undefined;
+  private clearTimers(id: string) {
+    const timers = this.timers.get(id);
+    if (timers) {
+      clearTimeout(timers.expiry);
+      clearInterval(timers.check);
+      this.timers.delete(id);
+    }
   }
-
-  const origins = value
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  return origins.length > 0 ? origins : undefined;
+  onModuleDestroy() {
+    for (const id of this.timers.keys()) this.clearTimers(id);
+  }
 }
