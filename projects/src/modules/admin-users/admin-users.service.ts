@@ -193,8 +193,8 @@ export class AdminUsersService {
 
       return {
         ...response,
-        accountEmailSent: false, // SMTP delivery is asynchronous.
-        accountEmailQueued: mailResult.sent,
+        accountEmailSent: mailResult.sent,
+        accountEmailQueued: false,
         accountEmailError: mailResult.error,
       };
     } catch (error) {

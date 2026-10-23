@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RedisService } from '../../../infrastructure/cache/redis.service';
-import { cacheKeys } from '../../../infrastructure/cache/cache.keys';
 import type { JwtPayload } from '../types/jwt-payload.type';
 
 export function tokenLifetimeSeconds(value: string): number {
@@ -18,16 +16,17 @@ export function tokenLifetimeSeconds(value: string): number {
   };
   return Math.ceil(Number(match[1]) * units[match[2]!]!);
 }
-const monotonicRevocation = `
-local old=tonumber(redis.call('GET',KEYS[1]) or '0'); local next=math.max(tonumber(ARGV[1]),old+1)
-local ttl=math.max(tonumber(ARGV[2]),redis.call('TTL',KEYS[1])); redis.call('SET',KEYS[1],string.format('%.0f',next),'EX',ttl); return next`;
+/** Local revocation state. Một API instance; state hết khi process restart. */
 @Injectable()
 export class AuthTokenStoreService {
+  private readonly revokedTokens = new Map<string, number>();
+  private readonly userRevocations = new Map<
+    string,
+    { stamp: number; expiresAt: number }
+  >();
   private readonly maximumLifetime: number;
-  constructor(
-    private readonly redis: RedisService,
-    config: ConfigService,
-  ) {
+
+  constructor(config: ConfigService) {
     this.maximumLifetime =
       Math.max(
         tokenLifetimeSeconds(
@@ -42,49 +41,53 @@ export class AuthTokenStoreService {
     jti: string | undefined,
     expiresAtSeconds: number | undefined,
   ) {
+    this.prune();
     if (!jti) return;
-    const lifetime = expiresAtSeconds
-      ? Math.ceil(expiresAtSeconds - Date.now() / 1000)
-      : this.maximumLifetime;
-    if (lifetime > 0)
-      await this.redis.set(cacheKeys.revokedToken(jti), '1', lifetime);
+    const expiresAt =
+      expiresAtSeconds === undefined
+        ? Date.now() + this.maximumLifetime * 1000
+        : expiresAtSeconds * 1000;
+    if (expiresAt > Date.now()) this.revokedTokens.set(jti, expiresAt);
   }
   async revokeUserTokensIssuedBefore(
     userId: string,
     issuedBeforeSeconds?: number,
   ) {
-    // Monotonic millisecond stamp also distinguishes two revocations within the same JWT iat second.
-    await this.redis.eval(
-      monotonicRevocation,
-      [cacheKeys.userRevokedAfter(userId)],
-      [
-        String(
-          issuedBeforeSeconds === undefined
-            ? Date.now()
-            : issuedBeforeSeconds * 1000,
-        ),
-        String(this.maximumLifetime),
-      ],
+    this.prune();
+    const previous = this.userRevocations.get(userId);
+    // Monotonic ms stamp vẫn phân biệt được hai lần revoke trong cùng giây.
+    const stamp = Math.max(
+      issuedBeforeSeconds === undefined
+        ? Date.now()
+        : issuedBeforeSeconds * 1000,
+      (previous?.stamp ?? 0) + 1,
     );
+    this.userRevocations.set(userId, {
+      stamp,
+      expiresAt: Date.now() + this.maximumLifetime * 1000,
+    });
   }
   async getRevocationStamp(userId: string) {
-    return (
-      (await this.redis.get(cacheKeys.userRevokedAfter(userId))) ?? undefined
-    );
+    this.prune();
+    const entry = this.userRevocations.get(userId);
+    return entry ? String(entry.stamp) : undefined;
   }
   async isTokenRevoked(
     payload: Pick<JwtPayload, 'sub' | 'jti' | 'iat' | 'revocationStamp'>,
   ): Promise<boolean> {
-    const values = (await this.redis.command([
-      'MGET',
-      this.redis.key(cacheKeys.revokedToken(payload.jti || 'missing')),
-      this.redis.key(cacheKeys.userRevokedAfter(payload.sub)),
-    ])) as (string | null)[];
-    if (values[0]) return true;
-    const stamp = values[1];
-    if (!stamp) return false;
+    this.prune();
+    if (payload.jti && this.revokedTokens.has(payload.jti)) return true;
+    const entry = this.userRevocations.get(payload.sub);
+    if (!entry) return false;
     if (payload.revocationStamp !== undefined)
-      return payload.revocationStamp !== stamp;
-    return !payload.iat || payload.iat * 1000 <= Number(stamp); // Legacy JWTs minted before this rollout.
+      return payload.revocationStamp !== String(entry.stamp);
+    return !payload.iat || payload.iat * 1000 <= entry.stamp;
+  }
+  private prune() {
+    const now = Date.now();
+    for (const [key, expiresAt] of this.revokedTokens)
+      if (expiresAt <= now) this.revokedTokens.delete(key);
+    for (const [key, entry] of this.userRevocations)
+      if (entry.expiresAt <= now) this.userRevocations.delete(key);
   }
 }

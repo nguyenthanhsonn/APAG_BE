@@ -1,3 +1,5 @@
+> **Tài liệu lịch sử:** phần infrastructure Redis/BullMQ đã rollback ngày 23/10/2026. Các topology, lệnh worker và kiểm thử nhiều instance bên dưới không còn áp dụng cho runtime hiện tại. Xem [runtime một instance](infrastructure-rollback.md).
+
 # Phase 6 — BullMQ async email và export
 
 Cập nhật 21/10/2026. API producer và worker chạy ở **process riêng**; không khởi chạy SMTP/render nặng trong API. Không thay schema DB nghiệp vụ trong phase này.

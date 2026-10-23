@@ -71,7 +71,7 @@ describe('JwtStrategy current authorization principal', () => {
     );
     expect(users.findAuthorizationUserById).not.toHaveBeenCalled();
   });
-  it('propagates Redis unavailability instead of accepting a token from a local fallback', async () => {
+  it('propagates auth state errors instead of bypassing token validation', async () => {
     const { strategy, tokens, users } = setup();
     tokens.isTokenRevoked.mockRejectedValue(new ServiceUnavailableException());
     await expect(strategy.validate(payload)).rejects.toBeInstanceOf(

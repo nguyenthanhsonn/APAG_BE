@@ -1,3 +1,5 @@
+> **Tài liệu lịch sử:** phần infrastructure Redis/BullMQ đã rollback ngày 23/10/2026. Các topology, lệnh worker và kiểm thử nhiều instance bên dưới không còn áp dụng cho runtime hiện tại. Xem [runtime một instance](infrastructure-rollback.md).
+
 # Phase 4 — Redis và shared API state
 
 Cập nhật 21/10/2026. Đã triển khai và kiểm thử hai NestJS process độc lập. Redis local 8.10.2 đã hoạt động tại loopback 6379; client dùng `redis` 6.3.0. Không thay schema hoặc dữ liệu nghiệp vụ APAG trong phase này.

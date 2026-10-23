@@ -36,15 +36,10 @@ async function bootstrap() {
   app.enableShutdownHooks();
   const { NotificationsIoAdapter } =
     await import('./modules/gateways/notifications-io.adapter');
-  const { SocketRedisService } =
-    await import('./infrastructure/cache/socket-redis.service');
-  const socketRedis = app.get(SocketRedisService);
-  await socketRedis.connect();
   app.useWebSocketAdapter(
     new NotificationsIoAdapter(
       app,
       configService.getOrThrow<string[]>('app.frontendUrls'),
-      socketRedis,
     ),
   );
 

@@ -1,4 +1,4 @@
-import { RedisModule } from './infrastructure/cache/redis.module';
+import { LocalStateModule } from './infrastructure/cache/local-state.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -33,7 +33,7 @@ import { UsersModule } from './modules/users/users.module';
       validate: validateEnvironment,
     }),
     ObservabilityModule,
-    RedisModule,
+    LocalStateModule,
     PrismaModule,
     AdminClassesModule,
     AdminFacultiesModule,

@@ -108,18 +108,10 @@ DB local `apag` cũng đã áp dụng `20261020020000_add_idempotent_operations`
 
 Có standalone Compose tại `projects/infra/observability/compose.yml` cho Prometheus, Grafana, Tempo và OTel Collector, không chạy migration/backend/DB. Container runtime chưa được xác minh trên máy này. Backend production cần `METRICS_TOKEN` hoặc `METRICS_ENABLED=false` trước khi khởi động bản mới. Xem [Observability và runbook](observability.md).
 
-## Redis/shared state — 21/10/2026
+## Runtime sau rollback Redis — 23/10/2026
 
-Compose chính thêm Redis private service với AOF appendfsync always/noeviction, volume và healthcheck; backend đợi Redis healthy. Standalone local Compose ở projects/infra/redis/compose.yml. Native Redis loopback đã được chạy/test; container runtime chưa xác minh. Xem [runbook và kết quả kiểm thử](redis-stateless-api.md).
+Compose hiện chỉ có PostgreSQL và backend, không còn depends_on Redis hoặc worker. API vẫn dùng volume report-exports để lưu file local. Prometheus chỉ scrape API:5050; queue metrics hiển thị queue=none.
 
-## Realtime nhiều instance — Phase 5
+Chạy lại backend bằng `docker compose up -d --build` từ `projects`, hoặc `pnpm build` và `pnpm start:prod` khi chạy native. Runtime này chỉ hỗ trợ một API instance. DB pool và index migrations Phase 7 vẫn được giữ; rollback này không thay PostgreSQL data/schema và không tự dừng/xóa Redis cũ.
 
-Socket.IO xác thực access JWT ở handshake, tự join room của user và dùng Redis Pub/Sub adapter để broadcast xuyên API. FE gửi `auth.token`, dùng websocket-only. Polling client cần sticky session tại load balancer. Xem [contract, kiểm thử và vận hành](realtime-multi-instance.md).
-
-## Phase 6 — BullMQ worker
-
-Email/report consumer chạy bằng process riêng (`cd projects && pnpm worker:dev`); production Compose có service worker. Scrape cả API:5050 và worker:5051 bằng METRICS_TOKEN; shared report volume bắt buộc giữa API và worker. Retry/backoff/retention, env mới và download owner checks mô tả tại [async processing runbook](async-processing.md).
-
-## Phase 7 — PostgreSQL pool và index
-
-API mặc định `DB_POOL_MAX=10`, worker Compose `WORKER_DB_POOL_MAX=3`, idle 30000ms, checkout/connection 2000ms. Native worker phải đặt pool riêng trong environment. Tính tổng connection của mọi replica, job và rollout overlap trước khi tăng số instance. Hai migration index mới dùng CONCURRENTLY, mỗi migration một statement; đã kiểm chứng trên clone synthetic, chưa deploy vào APAG. Xem [ngân sách, before/after và rollout](database-performance.md).
+Xem [phạm vi, API contract và giới hạn sau rollback](infrastructure-rollback.md).

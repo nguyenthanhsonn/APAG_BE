@@ -71,7 +71,7 @@ export class NotificationsGateway
       claims.exp! <= Date.now() / 1000
     )
       throw new Error('Invalid claims');
-    // Reuse HTTP's shared revocation checks and current DB principal (role/lock/delete).
+    // Reuse HTTP's local revocation checks and current DB principal (role/lock/delete).
     const user = await this.strategy.validate(claims);
     client.data = { userId: user.id, role: user.role, claims };
     await client.join(this.getUserRoom(user.id));
@@ -80,7 +80,7 @@ export class NotificationsGateway
   handleConnection(client: NotificationSocket) {
     getMetrics().socketOpened(client.id);
     // Expiry closes the connection even if it sends no events. Re-check lock/revocation
-    // every 15s; any Redis/DB failure closes the connection instead of using stale identity.
+    // every 15s; any auth/DB failure closes the connection instead of using stale identity.
     const expiry = setTimeout(
       () => client.disconnect(true),
       Math.min(

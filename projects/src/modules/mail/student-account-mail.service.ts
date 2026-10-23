@@ -1,47 +1,30 @@
-import { canonicalPayload } from '../../infrastructure/queue/queue-crypto.service';
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { QueueService } from '../../infrastructure/queue/queue.service';
-import type { EmailPayload } from '../../infrastructure/queue/queue.types';
+import { SmtpMailService } from './smtp-mail.service';
 
-type Payload<K extends EmailPayload['kind']> = Omit<
-  Extract<EmailPayload, { kind: K }>,
-  'kind'
->;
-
-// API facade only enqueues AFTER the caller has committed its DB changes; no SMTP in HTTP.
+/** SMTP trực tiếp sau DB commit; không còn queue/worker bên ngoài. */
 @Injectable()
 export class StudentAccountMailService {
-  constructor(
-    private readonly queues: QueueService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly smtp: SmtpMailService) {}
   isConfigured() {
-    return !!(
-      this.config.get<string>('app.smtp.host') &&
-      this.config.get<string>('app.smtp.from')
-    );
+    return this.smtp.isConfigured();
   }
-  async sendStudentAccount(payload: Payload<'student'>) {
-    return this.enqueue({ kind: 'student', ...payload });
+  sendStudentAccount(
+    payload: Parameters<SmtpMailService['sendStudentAccount']>[0],
+  ) {
+    return this.smtp.sendStudentAccount(payload);
   }
-  async sendStaffAccount(payload: Payload<'staff'>) {
-    return this.enqueue({ kind: 'staff', ...payload });
+  sendStaffAccount(
+    payload: Parameters<SmtpMailService['sendStaffAccount']>[0],
+  ) {
+    return this.smtp.sendStaffAccount(payload);
   }
-  async sendPasswordReset(payload: Payload<'password-reset'>) {
-    return this.enqueue({ kind: 'password-reset', ...payload });
-  }
-  private enqueue(payload: EmailPayload) {
-    if (!this.isConfigured()) throw new Error('Chưa cấu hình SMTP');
-    const key = this.queues.crypto.digest(canonicalPayload(payload));
-    return this.queues.enqueue('email', payload, {
-      key,
-      ttl:
-        payload.kind === 'password-reset'
-          ? payload.expiresAt
-            ? (payload.expiresAt - Date.now()) / 1000
-            : payload.expiresInMinutes * 60
-          : 86400,
-    });
+  async sendPasswordReset(
+    payload: Parameters<SmtpMailService['sendPasswordReset']>[0] & {
+      expiresAt?: number;
+    },
+  ) {
+    if (payload.expiresAt !== undefined && payload.expiresAt <= Date.now())
+      throw new Error('Link đặt lại mật khẩu đã hết hạn');
+    await this.smtp.sendPasswordReset(payload);
   }
 }

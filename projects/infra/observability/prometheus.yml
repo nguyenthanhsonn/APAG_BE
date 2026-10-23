@@ -8,4 +8,4 @@ scrape_configs:
       type: Bearer
       credentials_file: /run/secrets/metrics_token
     static_configs:
-      - targets: [host.docker.internal:5050, host.docker.internal:5051]
+      - targets: [host.docker.internal:5050]
