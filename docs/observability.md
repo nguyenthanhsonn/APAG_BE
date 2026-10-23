@@ -154,6 +154,6 @@ Nếu không có trace: kiểm tra `OTEL_ENABLED`, sampling, collector/exporter 
 
 Nguồn kỹ thuật: [OpenTelemetry JS instrumentation](https://opentelemetry.io/docs/languages/js/libraries/), [Prisma tracing](https://docs.prisma.io/docs/orm/prisma-client/observability-and-logging/opentelemetry-tracing), [Prometheus JS client](https://github.com/prometheus/client_js), [Pino redaction](https://github.com/pinojs/pino/blob/main/docs/redaction.md).
 
-## Phase 6 — BullMQ worker
+## Runtime sau rollback — 23/10/2026
 
-Email/report consumer chạy bằng process riêng (`cd projects && pnpm worker:dev`); production Compose có service worker. Scrape cả API:5050 và worker:5051 bằng METRICS_TOKEN; shared report volume bắt buộc giữa API và worker. Retry/backoff/retention, env mới và download owner checks mô tả tại [async processing runbook](async-processing.md).
+Không còn worker/BullMQ. Prometheus scrape API:5050; queue=none và queue_enabled=0 là trạng thái mong đợi. Pino, request/correlation IDs, DB pool/query metrics, WebSocket count và OTel vẫn giữ. Chạy `pnpm test:local-infrastructure` để kiểm tra runtime không cần Redis và `pnpm test:observability` để kiểm tra telemetry. Xem [rollback runbook](infrastructure-rollback.md).

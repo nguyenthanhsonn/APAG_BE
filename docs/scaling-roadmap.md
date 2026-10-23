@@ -1,3 +1,5 @@
+> **Cập nhật 23/10/2026:** infrastructure Redis/BullMQ đã rollback. Pool/index/query optimizations vẫn giữ; số liệu hai API + worker bên dưới là lịch sử trước rollback, không phải xác nhận runtime hiện tại hỗ trợ nhiều instance. Xem [runtime hiện tại](infrastructure-rollback.md).
+
 # Lộ trình tối ưu và mở rộng
 
 Ngày lập: **19/10/2026**. Cơ sở: [kiến trúc](architecture.md), [luồng API](api-critical-flows.md), [baseline](performance-baseline.md), source `4876b15aa63e8b79945aae626bd6fc3b0be53d5b`.

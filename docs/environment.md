@@ -54,9 +54,8 @@ Thay `DB_PASS` không tự đổi password của user PostgreSQL trong volume đ
 | `DB_POOL_MAX` | 10 | Tối đa connection/process, số nguyên 1–1000; phải tính tổng API/worker/rollout theo PostgreSQL thực tế |
 | `DB_POOL_IDLE_TIMEOUT` | 30000 | Milliseconds, 1–600000; thu hồi connection nhàn rỗi |
 | `DB_POOL_CONNECTION_TIMEOUT` | 2000 | Milliseconds, 100–60000; timeout tạo/checkout connection |
-| `WORKER_DB_POOL_MAX` | 3 | Compose truyền thành `DB_POOL_MAX` riêng của worker; native worker đặt `DB_POOL_MAX=3` |
 
-API và worker cùng dùng PrismaService nhưng mỗi process sở hữu pool riêng. Pool timeout không giới hạn thời gian thực thi SQL. Công thức ngân sách connection, số đo hai API + worker và rollout index: [Database performance](database-performance.md).
+API dùng PrismaService với pool riêng; không còn worker process. Pool timeout không giới hạn thời gian thực thi SQL. Công thức ngân sách connection, số đo hai API + worker và rollout index: [Database performance](database-performance.md).
 
 ## JWT
 
@@ -93,10 +92,8 @@ Nguồn: [validation](../projects/src/config/env.validation.ts), [app config](..
 
 Các biến mới: `METRICS_ENABLED`, `METRICS_TOKEN`, `OTEL_ENABLED`, `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_TRACES_SAMPLER_ARG`, `DB_SLOW_QUERY_MS`. Production phải cấp metrics token riêng hoặc tắt endpoint. Xem bảng mặc định/validation và cách chạy trong runbook. Xem [Observability và runbook](observability.md).
 
-## Redis/shared state — 21/10/2026
+## Runtime sau rollback — 23/10/2026
 
-Thêm REDIS_URL, REDIS_KEY_PREFIX, REDIS_COMMAND_TIMEOUT_MS. Redis là dependency bắt buộc; các instance cùng môi trường phải chia sẻ prefix/database và JWT secrets. Xem [runbook và kết quả kiểm thử](redis-stateless-api.md).
-
-## Phase 6 — BullMQ worker
-
-Email/report consumer chạy bằng process riêng (`cd projects && pnpm worker:dev`); production Compose có service worker. Scrape cả API:5050 và worker:5051 bằng METRICS_TOKEN; shared report volume bắt buộc giữa API và worker. Retry/backoff/retention, env mới và download owner checks mô tả tại [async processing runbook](async-processing.md).
+Không còn yêu cầu `REDIS_*`, `QUEUE_*`, `EMAIL_WORKER_*` hoặc `WORKER_*`. Các biến cũ không kích hoạt Redis/worker.
+Email đọc `app.smtp` và gửi trực tiếp; export local dùng `REPORT_EXPORT_DIR` (mặc định `.local/report-exports`) và `REPORT_RETENTION_SECONDS` (mặc định 86400, số nguyên 60–86400).
+Pino/metrics/OTel, JWT và ba env DB pool giữ nguyên. Xem [runbook rollback](infrastructure-rollback.md).

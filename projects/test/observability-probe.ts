@@ -117,21 +117,25 @@ async function run() {
   ]);
   const depPort = (dependency.address() as import('node:net').AddressInfo).port;
   const smtpPort = (smtp.address() as import('node:net').AddressInfo).port;
+  const { SmtpMailService } =
+    await import('../src/modules/mail/smtp-mail.service');
   const mail = new StudentAccountMailService(
-    new ConfigService({
-      app: {
-        smtp: {
-          host: '127.0.0.1',
-          port: smtpPort,
-          secure: false,
-          startTls: false,
-          from: 'sender@example.test',
-          fromName: 'Probe',
-          clientName: 'localhost',
-          portalUrl: 'http://example.test/login',
+    new SmtpMailService(
+      new ConfigService({
+        app: {
+          smtp: {
+            host: '127.0.0.1',
+            port: smtpPort,
+            secure: false,
+            startTls: false,
+            from: 'sender@example.test',
+            fromName: 'Probe',
+            clientName: 'localhost',
+            portalUrl: 'http://example.test/login',
+          },
         },
-      },
-    }),
+      }),
+    ),
   );
   @nest.Controller('probe')
   class ProbeController {

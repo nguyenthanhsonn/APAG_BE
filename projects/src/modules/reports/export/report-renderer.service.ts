@@ -14,9 +14,9 @@ import {
 } from 'docx';
 import type { FlatExportRow } from '../types/report.types';
 import { EXPORT_COLUMNS } from '../constants/export-columns.constant';
-import type { ReportFormat } from '../../../infrastructure/queue/queue.types';
+import type { ReportFormat } from '../../../infrastructure/reports/report.types';
 
-// This provider is loaded only by the worker module, never instantiated by the API.
+// Local export renderer; invoked synchronously by ReportJobsService after Redis rollback.
 @Injectable()
 export class ReportRenderer {
   async render(format: ReportFormat, rows: FlatExportRow[]): Promise<Buffer> {

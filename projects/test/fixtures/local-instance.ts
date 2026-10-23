@@ -3,9 +3,8 @@ import { NotificationsGateway } from '../../src/modules/gateways/notifications.g
 import { AuthTokenStoreService } from '../../src/modules/auth/jwt/auth-token-store';
 import type { NotificationResponse } from '../../src/modules/notifications/types/notification.types';
 import { ConfigService } from '@nestjs/config';
-import { SocketRedisService } from '../../src/infrastructure/cache/socket-redis.service';
 import { NotificationsIoAdapter } from '../../src/modules/gateways/notifications-io.adapter';
-// Test-only process entrypoint for cross-instance Redis checks.
+// Test-only single-instance entrypoint: real HTTP + JWT WebSocket, no Redis.
 import '../../src/observability/initialize';
 import { Test } from '@nestjs/testing';
 import { RequestMethod, ValidationPipe } from '@nestjs/common';
@@ -20,13 +19,10 @@ async function main() {
     imports: [AppModule],
   }).compile();
   const app = module.createNestApplication({ bufferLogs: true });
-  const socketRedis = app.get(SocketRedisService);
-  await socketRedis.connect();
   app.useWebSocketAdapter(
     new NotificationsIoAdapter(
       app,
       app.get(ConfigService).getOrThrow<string[]>('app.frontendUrls'),
-      socketRedis,
     ),
   );
   app.useLogger(app.get(StructuredLogger));

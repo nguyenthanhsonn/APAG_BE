@@ -18,13 +18,6 @@ export function validateEnvironment(config: Environment): Environment {
     SWAGGER_ENABLED: 'true',
     LOG_LEVEL: 'info',
     METRICS_ENABLED: 'true',
-    REDIS_URL: 'redis://127.0.0.1:6379',
-    REDIS_KEY_PREFIX: 'apag:',
-    REDIS_COMMAND_TIMEOUT_MS: '2000',
-    WORKER_METRICS_PORT: '5051',
-    WORKER_HOST: '127.0.0.1',
-    EMAIL_WORKER_CONCURRENCY: '3',
-    QUEUE_BACKOFF_MS: '1000',
     REPORT_RETENTION_SECONDS: '86400',
     OTEL_ENABLED: 'false',
     OTEL_SERVICE_NAME: 'apag-backend',
@@ -69,7 +62,6 @@ export function validateEnvironment(config: Environment): Environment {
     'DB_PORT',
     'DB_PUBLISHED_PORT',
     'SMTP_PORT',
-    'WORKER_METRICS_PORT',
   ]) {
     if (config[key] === undefined || config[key] === '') continue;
     const port = Number(config[key]);
@@ -133,41 +125,16 @@ export function validateEnvironment(config: Environment): Environment {
       }
     }
   }
-  try {
-    const url = new URL(String(config.REDIS_URL));
-    if (!['redis:', 'rediss:'].includes(url.protocol) || !url.hostname)
-      throw new Error();
-  } catch {
-    throw new Error('REDIS_URL must be a valid redis:// or rediss:// URL');
-  }
-  if (!/^[a-zA-Z0-9_:-]{1,64}:$/.test(String(config.REDIS_KEY_PREFIX)))
-    throw new Error(
-      'REDIS_KEY_PREFIX must be a bounded namespace ending with colon',
-    );
-  const redisTimeout = Number(config.REDIS_COMMAND_TIMEOUT_MS);
-  if (
-    !Number.isInteger(redisTimeout) ||
-    redisTimeout < 100 ||
-    redisTimeout > 10000
-  )
-    throw new Error('REDIS_COMMAND_TIMEOUT_MS must be 100..10000');
   for (const [key, min, max] of [
     ['DB_POOL_MAX', 1, 1000],
     ['DB_POOL_IDLE_TIMEOUT', 1, 600000],
     ['DB_POOL_CONNECTION_TIMEOUT', 100, 60000],
-    ['EMAIL_WORKER_CONCURRENCY', 1, 20],
-    ['QUEUE_BACKOFF_MS', 100, 60000],
     ['REPORT_RETENTION_SECONDS', 60, 86400],
   ] as const) {
     const value = Number(config[key]);
     if (!Number.isInteger(value) || value < min || value > max)
       throw new Error(`${key} must be ${min}..${max}`);
   }
-  if (
-    config.QUEUE_ENCRYPTION_KEY &&
-    !/^[a-fA-F0-9]{64}$/.test(String(config.QUEUE_ENCRYPTION_KEY))
-  )
-    throw new Error('QUEUE_ENCRYPTION_KEY must contain 64 hex characters');
   const ratio = Number(config.OTEL_TRACES_SAMPLER_ARG);
   if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1)
     throw new Error('OTEL_TRACES_SAMPLER_ARG must be between 0 and 1');

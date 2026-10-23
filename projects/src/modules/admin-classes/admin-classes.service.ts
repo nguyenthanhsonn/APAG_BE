@@ -430,7 +430,7 @@ export class AdminClassesService {
         successCount: result.successCount,
         skippedCount: result.skippedCount,
         createdAccountCount: result.createdAccountCount,
-        emailQueuedCount: result.emailQueuedCount,
+        emailSentCount: result.emailSentCount,
         emailFailedCount: result.emailFailedCount,
       });
 
@@ -1037,8 +1037,8 @@ export class AdminClassesService {
       skippedCount: plan.skippedCount,
       createdAccountCount: createdAccounts.length,
       createdAccounts,
-      emailSentCount: 0,
-      emailQueuedCount: emailResult.sentCount,
+      emailSentCount: emailResult.sentCount,
+      emailQueuedCount: 0,
       emailFailedCount: emailResult.errors.length,
       emailErrors: emailResult.errors,
       failedCount: 0,
@@ -1096,8 +1096,6 @@ export class AdminClassesService {
           message: 'Chưa gửi được email tài khoản, vui lòng kiểm tra lại sau',
         });
       });
-
-
     }
 
     return {

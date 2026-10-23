@@ -1,3 +1,5 @@
+> **Tài liệu lịch sử:** phần infrastructure Redis/BullMQ đã rollback ngày 23/10/2026. Các topology, lệnh worker và kiểm thử nhiều instance bên dưới không còn áp dụng cho runtime hiện tại. Xem [runtime một instance](infrastructure-rollback.md).
+
 # Phase 5 — Realtime trên nhiều API instance
 
 Cập nhật 21/10/2026. Đã kiểm thử **hai NestJS process độc lập**, PostgreSQL test riêng và Redis test riêng. Không thay dữ liệu nghiệp vụ APAG.
