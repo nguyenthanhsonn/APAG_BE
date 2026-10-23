@@ -18,17 +18,6 @@ services:
       timeout: 5s
       retries: 20
 
-  redis:
-    image: redis:8.10.2-alpine
-    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "always", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction"]
-    volumes: ["redis-state:/data"]
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    restart: unless-stopped
-
   backend:
     build:
       context: .
@@ -38,13 +27,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment: &backend-environment
+    environment:
       NODE_ENV: production
-      REDIS_URL: ${REDIS_DOCKER_URL:-redis://redis:6379}
-      REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-apag:}
-      REDIS_COMMAND_TIMEOUT_MS: ${REDIS_COMMAND_TIMEOUT_MS:-2000}
       DATABASE_URL: ""
       DIRECT_URL: ""
       DB_HOST: db
@@ -78,9 +62,6 @@ services:
       DUMMY_PASSWORD_HASH: ${DUMMY_PASSWORD_HASH:-}
       REPORT_EXPORT_DIR: /app/.local/report-exports
       REPORT_RETENTION_SECONDS: ${REPORT_RETENTION_SECONDS:-86400}
-      QUEUE_BACKOFF_MS: ${QUEUE_BACKOFF_MS:-1000}
-      QUEUE_ENCRYPTION_KEY: ${QUEUE_ENCRYPTION_KEY:-}
-      EMAIL_WORKER_CONCURRENCY: ${EMAIL_WORKER_CONCURRENCY:-3}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
@@ -94,27 +75,6 @@ services:
       - "${BACKEND_PORT:-5050}:5050"
     volumes: ["report-exports:/app/.local/report-exports"]
 
-  worker:
-    stop_grace_period: 180s
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["pnpm", "worker:start"]
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      <<: *backend-environment
-      DB_POOL_MAX: ${WORKER_DB_POOL_MAX:-3}
-      WORKER_HOST: 0.0.0.0
-      WORKER_METRICS_PORT: 5051
-    ports: ["127.0.0.1:${WORKER_METRICS_PORT:-5051}:5051"]
-    volumes: ["report-exports:/app/.local/report-exports"]
-
 volumes:
   csmts-postgres-data:
-  redis-state:
   report-exports:

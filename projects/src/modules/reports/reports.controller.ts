@@ -55,7 +55,8 @@ export class ReportsController {
   @HttpCode(202)
   @ApiResponse({
     status: 202,
-    description: 'Đã nhận yêu cầu tạo file; poll statusUrl để theo dõi.',
+    description:
+      'Export xử lý trong request; dùng statusUrl/downloadUrl để lấy file trên instance hiện tại.',
   })
   createExport(
     @CurrentUser('id') userId: string,

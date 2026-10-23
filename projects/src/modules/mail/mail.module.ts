@@ -1,10 +1,9 @@
-import { QueueModule } from '../../infrastructure/queue/queue.module';
+import { SmtpMailService } from './smtp-mail.service';
 import { Module } from '@nestjs/common';
 import { StudentAccountMailService } from './student-account-mail.service';
 
 @Module({
-  imports: [QueueModule],
-  providers: [StudentAccountMailService],
+  providers: [SmtpMailService, StudentAccountMailService],
   exports: [StudentAccountMailService],
 })
 export class MailModule {}

@@ -11,7 +11,7 @@ import {
 } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { ReportFormat } from './queue.types';
+import type { ReportFormat } from './report.types';
 
 @Injectable()
 export class ReportStorage {

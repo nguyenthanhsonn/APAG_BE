@@ -1,3 +1,5 @@
+> **Cập nhật 23/10/2026:** infrastructure Redis/BullMQ đã rollback. Pool/index/query optimizations vẫn giữ; số liệu hai API + worker bên dưới là lịch sử trước rollback, không phải xác nhận runtime hiện tại hỗ trợ nhiều instance. Xem [runtime hiện tại](infrastructure-rollback.md).
+
 # Phase 7 — Database performance engineering
 
 Đo ngày **21/10/2026**, trên PostgreSQL 17.9 local, cùng máy với Node/APIs/worker. Đã có cấu hình pool, 21 bộ truy vấn trước/sau, 6 thử nghiệm index độc lập và bài chạy hai API thật cùng một BullMQ worker. Migration mới chỉ áp dụng vào các DB synthetic; **chưa deploy hai index vào DB APAG**.
