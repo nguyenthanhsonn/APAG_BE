@@ -1,3 +1,5 @@
+import type { ApiSemester } from '../../training-evaluations/types/evaluation-form.types';
+
 export type FacultyClassStatus =
   | 'IN_PROGRESS'
   | 'PENDING_FACULTY'
@@ -41,6 +43,7 @@ export interface FacultyCouncilReviewItem {
 export interface FacultyCouncilReviewResponse {
   classId: string;
   className: string;
+  semester: { id: string; code: ApiSemester; academicYear: string };
   totalStudents: number;
   items: FacultyCouncilReviewItem[];
 }

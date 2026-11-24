@@ -78,7 +78,7 @@ export class EvaluationFinalizeService {
     id: string,
     expectedVersion?: number,
   ): Promise<EvaluationDetailResponse> {
-    assertEvaluationAccess(EvaluationAccessPolicy.canFinalize(actor));
+    EvaluationAccessPolicy.assertRole('reopen', actor);
     const current = await this.prisma.evaluationForm.findUnique({
       where: { id },
       select: {
@@ -98,7 +98,7 @@ export class EvaluationFinalizeService {
 
     const evaluation = await this.prisma.$transaction((tx) => {
       EvaluationDeadlinePolicy.assertWithinDeadline(
-        UserRole.Admin,
+        actor.role,
         current.semester,
       );
       return writeEvaluationAndRead(tx, current, {
@@ -109,6 +109,7 @@ export class EvaluationFinalizeService {
           finalScore: null,
           classLeaderReviewedBy: null,
           classLeaderReviewedAt: null,
+          classLeaderReviewData: Prisma.DbNull,
           classReviewedBy: null,
           classReviewedAt: null,
           adminFinalizedBy: null,
@@ -171,7 +172,7 @@ export class EvaluationFinalizeService {
 
     const evaluation = await database.$transaction((tx) => {
       EvaluationDeadlinePolicy.assertWithinDeadline(
-        UserRole.Admin,
+        UserRole.TrainingDepartment,
         current.semester,
       );
       return writeEvaluationAndRead(tx, current, {
@@ -309,48 +310,6 @@ export class EvaluationFinalizeService {
     };
   }
 
-  /**
-   * Tương thích POST /:id/review: role/status/assignment đã được review kiểm tra.
-   * Nhánh cũ không kiểm tra isLocked, khác finalize() đơn; giữ nguyên để refactor không đổi API.
-   */
-  async finalizeReviewedForm(
-    actor: EvaluationActor,
-    form: {
-      id: string;
-      version: number;
-      status: FormStatus;
-      classScore: number | null;
-      semester: EvaluationDeadlines;
-    },
-    database: CommandDatabase = this.prisma,
-  ): Promise<EvaluationScoreSummaryResponse> {
-    assertEvaluationAccess(EvaluationAccessPolicy.canFinalize(actor));
-    const adminId = actor.id;
-    assertTransition(form.status, EVALUATION_TRANSITIONS.finalize.target);
-    if (form.classScore === null)
-      throw new ConflictException(
-        'Phiếu chưa có điểm lớp chấm, không thể phê duyệt cuối',
-      );
-    const finalScore = form.classScore;
-    const approved = await database.$transaction((tx) => {
-      EvaluationDeadlinePolicy.assertWithinDeadline(
-        UserRole.Admin,
-        form.semester,
-      );
-      return writeEvaluationAndRead(tx, form, {
-        data: {
-          status: EVALUATION_TRANSITIONS.finalize.target,
-          finalScore,
-          rank: calculateClassification(finalScore),
-          adminFinalizedBy: adminId,
-          adminFinalizedAt: new Date(),
-        },
-        select: evaluationScoreSummarySelect,
-      });
-    });
-    return mapToScoreSummaryResponse(approved);
-  }
-
   // Batch giữ transaction ban đầu; classScore null vẫn thành 0 theo hành vi cũ.
   private finalizeForms(
     adminId: string,
@@ -371,7 +330,7 @@ export class EvaluationFinalizeService {
       // Thứ tự khóa ổn định cho hai batch giao nhau; một conflict rollback cả batch.
       for (const form of [...forms].sort((a, b) => a.id.localeCompare(b.id))) {
         EvaluationDeadlinePolicy.assertWithinDeadline(
-          UserRole.Admin,
+          UserRole.TrainingDepartment,
           form.semester,
         );
         const finalScore = form.classScore ?? 0;

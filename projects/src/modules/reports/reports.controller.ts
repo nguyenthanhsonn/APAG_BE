@@ -40,7 +40,7 @@ import {
 @ApiResponse({ status: 401, description: 'Thiếu hoặc sai access token.' })
 @Controller('reports')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.Admin)
+@Roles(UserRole.Admin, UserRole.TrainingDepartment)
 export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,

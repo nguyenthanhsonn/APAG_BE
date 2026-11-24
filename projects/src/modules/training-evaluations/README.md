@@ -37,7 +37,7 @@ training-evaluations/
 | [Score](application/evaluation-score.service.ts) | Lưu nháp, điểm tự chấm và điểm thẩm định | `updateDraft`, `update*Score`, `reviewScores` |
 | [Submit](application/evaluation-submit.service.ts) | Tạo phiếu, sinh viên nộp và gửi danh sách giữa các cấp | `create`, `submit`, `submitClassToAdvisor`, `submitClassToFaculty`, `submitFacultyToTrainingDepartment` |
 | [Review](application/evaluation-review.service.ts) | Xác nhận, duyệt hoặc trả về từng phiếu | `confirmReview`, `review`, `returnToStudent` |
-| [Finalize](application/evaluation-finalize.service.ts) | Chốt điểm cuối, chốt hàng loạt và mở lại | `finalize`, `bulkFinalize`, `finalizeByFilter`, `reopen`, `finalizeReviewedForm` |
+| [Finalize](application/evaluation-finalize.service.ts) | Chốt điểm cuối, chốt hàng loạt và mở lại | `finalize`, `bulkFinalize`, `finalizeByFilter`, `reopen` |
 
 `create` ở Submit vì bắt đầu vòng đời phiếu. `updateDraft` ở Score vì thay đổi dữ liệu trước khi nộp. `reviewScores` cũng ở Score: nó ghi điểm và hủy xác nhận cũ, chưa chuyển cấp. `confirmReview` ở Review: ghi nhận người/thời gian xác nhận; chuyển trạng thái danh sách là việc của Submit.
 
@@ -80,7 +80,7 @@ assertTransition(FormStatus.submitted, FormStatus.finalized); // HTTP 409: nhả
 assertTransition(FormStatus.finalized, FormStatus.finalized); // HTTP 409: self-transition
 ```
 
-Đường chính: `draft → submitted → class_leader_approved → class_approved → faculty_approved → finalized`; `rejected → submitted` bắt đầu lại vòng duyệt. Các nhánh trả về hiện có từ `submitted`, `class_leader_approved`, `faculty_approved` tới `rejected` cũng nằm trong bảng.
+Đường chính: `draft → submitted → class_leader_approved → class_approved → faculty_approved → finalized`; `rejected → submitted` bắt đầu lại vòng duyệt. Các nhánh trả về hiện có từ `submitted` và `class_leader_approved` tới `rejected` cũng nằm trong bảng.
 
 `finalized` không có cạnh workflow thông thường đi ra. API admin `reopen` dùng `assertReopenTransition` với cạnh quản trị khai báo trong cùng bảng; nó không khiến `assertTransition(finalized, draft)` trở nên hợp lệ. Tạo phiếu mới là khởi tạo `draft`, không phải chuyển từ một trạng thái có sẵn.
 
@@ -90,7 +90,7 @@ Guard chỉ xác nhận cạnh workflow: quyền người gọi, assignment, kh�
 
 ## Access policy
 
-[EvaluationAccessPolicy](domain/evaluation-access.policy.ts) có sáu capability thuần, không query DB và không phụ thuộc Nest DI. Application lấy dữ kiện ownership/assignment từ Prisma; quyền role khai báo tập trung ở `EVALUATION_ACCESS_ROLES`. Controller vẫn có `RolesGuard`, application cũng kiểm tra quyền để các lời gọi nội bộ không bỏ qua guard HTTP.
+[EvaluationAccessPolicy](domain/evaluation-access.policy.ts) có các capability thuần, không query DB và không phụ thuộc Nest DI. Application lấy dữ kiện ownership/assignment từ Prisma; quyền role khai báo tập trung ở `EVALUATION_ACCESS_ROLES`. Controller vẫn có `RolesGuard`, application cũng kiểm tra quyền để các lời gọi nội bộ không bỏ qua guard HTTP.
 
 | Capability | Role và phạm vi |
 |---|---|
@@ -99,7 +99,7 @@ Guard chỉ xác nhận cạnh workflow: quyền người gọi, assignment, kh�
 | `canReview()` | Lớp trưởng/CVHT đúng assignment lớp, áp dụng chấm tiêu chí và xác nhận |
 | `canSubmitClass()` | Lớp trưởng hoặc CVHT đúng assignment; bước gửi CVHT yêu cầu lớp trưởng, bước gửi khoa yêu cầu CVHT |
 | `canApproveFaculty()` | Tài khoản khoa đúng assignment và khoa còn hoạt động |
-| `canFinalize()` | Admin/PĐT, dùng cho finalize đơn/bulk/filter và reopen. Legacy review admin dùng capability này; route legacy giữ role admin như trước |
+| `canFinalize()` | Chỉ Phòng Đào tạo, áp dụng cho finalize đơn, theo danh sách ID và theo bộ lọc |
 
 `can*` chỉ quyết định quyền, **không kiểm tra status, isLocked hoặc deadline**. Có quyền sửa chưa có nghĩa trạng thái hiện tại được sửa: permission hợp lệ mới đi tiếp đến state machine/lock/deadline guard. Nhờ đó sai role/assignment trả **403**, sai workflow hoặc stale version trả **409**. Sinh viên đọc/sửa ID phiếu người khác vẫn được che bằng owner filter, trả **404** như trước; ID không tồn tại cũng 404.
 
@@ -127,9 +127,9 @@ Idempotency không bỏ qua authorization: role được kiểm tra trước loo
 |---|---|---|
 | Sinh viên | `studentDeadline` | Submit lần đầu và nộp lại từ rejected |
 | Lớp trưởng | `classDeadline` | Chấm tiêu chí, xác nhận, approve/reject, gửi danh sách lên CVHT |
-| CVHT | `classDeadline` | Chấm tiêu chí, xác nhận, approve/reject/return-to-student, gửi danh sách lên khoa |
+| CVHT | `classDeadline` | Chấm tiêu chí, xác nhận, return-to-student, gửi danh sách lên khoa |
 | Khoa | `facultyDeadline` | Duyệt/gửi danh sách từ class_approved lên faculty_approved |
-| Admin/PĐT | Chưa có mốc riêng | Finalize đơn, legacy approve/reject, bulk/filter finalize, reopen vẫn qua cùng policy nhưng không mượn hạn của cấp trước |
+| Admin/PĐT | Chưa có mốc riêng | Finalize đơn, bulk/filter finalize và reopen vẫn qua cùng policy nhưng không mượn hạn của cấp trước |
 
 Các deadline hiện được cấu hình bằng **ngày YYYY-MM-DD** ở API học kỳ. Mặc định policy cho phép đến **23:59:59.999 giờ Việt Nam** của ngày hạn; đúng mốc còn hợp lệ, sau đó trả **409 Conflict**. Ví dụ ngày `2026-10-20` hết hạn tại `2026-10-20T16:59:59.999Z`. Mốc dựng với timezone Việt Nam tường minh, không phụ thuộc timezone process/server. `deadlineFor()` trả giá trị gốc để nhắc việc; `expiresAt()` tính mốc cuối ngày; `assertWithinDeadline()` kiểm tra bằng thời gian server, cho truyền `now` khi unit test.
 
@@ -156,20 +156,20 @@ Migration: `20261020010000_add_evaluation_form_version`. Đã áp dụng trên D
 
 ## Hành vi cố ý giữ nguyên
 
-- Prefix, HTTP method, DTO, role guard, cấu trúc response và alias `/admin/evaluations`, `/admin/training-evaluations`, `/training-department/evaluations` không đổi. Lỗi chuyển trạng thái dùng HTTP 409 với thông báo chung `Không thể chuyển phiếu từ <current> sang <target>`.
+- API danh sách và mở lại phiếu dùng ba prefix `/admin/evaluations`, `/admin/training-evaluations` và `/training-department/evaluations`. API duyệt cuối chỉ có dưới `/training-department/evaluations`. Lỗi chuyển trạng thái dùng HTTP 409 với thông báo chung `Không thể chuyển phiếu từ <current> sang <target>`.
 - Detail/summary/status đã áp dụng `canRead`: sinh viên chỉ xem phiếu của mình; lớp trưởng/CVHT theo assignment lớp; khoa theo assignment khoa; admin/PĐT đọc toàn hệ thống.
-- Finalize đơn kiểm tra khóa và điểm hợp lệ. Batch vẫn dùng `classScore ?? 0` và giữ bộ lọc cũ. `finalizeReviewedForm` giữ riêng hành vi route `POST /:id/review`, không thêm kiểm tra khóa mới.
-- `reopen` giữ nguyên điểm sinh viên và không tự xóa `isLocked`.
+- Finalize đơn kiểm tra khóa và điểm hợp lệ. Batch vẫn dùng `classScore ?? 0` và giữ bộ lọc cũ.
+- Admin và Phòng Đào tạo có thể dùng `reopen`. Thao tác giữ nguyên điểm sinh viên và không tự xóa `isLocked`.
 - Snapshot điểm/trạng thái dùng optimistic concurrency. Request có key dùng idempotency như phần dưới; outbox cho socket vẫn là phần việc riêng.
 
 Các comment trong service đánh dấu những điểm này để tránh vô tình đổi hành vi khi tối ưu tiếp.
 
 ## Idempotent operations
 
-Các route submit, gửi danh sách qua các cấp, review-scores, confirm-review, approve/reject/return-to-student, finalize đơn, bulk-finalize và finalize-by-filter nhận header **`Idempotency-Key`**. Swagger mô tả header trên từng route; các alias admin dùng chung receipt.
+Các route submit, gửi danh sách qua các cấp, review-scores, confirm-review, return-to-student, finalize đơn, bulk-finalize và finalize-by-filter nhận header **`Idempotency-Key`**. Swagger mô tả header trên từng route.
 
 ```http
-PATCH /api/v1/admin/evaluations/bulk-finalize
+PATCH /api/v1/training-department/evaluations/bulk-finalize
 Authorization: Bearer <access-token>
 Idempotency-Key: 7f735fbd-0618-4fe0-85b5-9fd1bfba3215
 Content-Type: application/json
@@ -213,6 +213,6 @@ Unit test dùng Prisma/notification giả lập, kiểm tra scope quyền, công
 
 `test:concurrency` chạy test PostgreSQL thật từ `test/evaluation-concurrency.e2e-spec.ts`, dùng DB cấu hình local hoặc `TEST_DATABASE_URL` nếu đặt. Test tạo và dọn schema ngẫu nhiên riêng, không sửa record trong `public`. Cần quyền tạo schema và migration version đã có ở database test. Test ép hai HTTP request đọc cùng version: đúng một response 200 và một 409, tổng điểm không mất cập nhật; request retry đọc version mới được phép chạy. Các test khác xác minh conflict ở candidate cuối làm rollback cả batch và hai lần finalize cùng phiếu chỉ một lần thành công. `test:e2e` thông thường bỏ qua nhóm PostgreSQL này khi không có `TEST_DATABASE_URL`; dùng lệnh riêng để chạy đầy đủ.
 
-Nhóm PostgreSQL còn kiểm tra idempotency: submit/review/confirm/reject/finalize/bulk chạy đồng thời cùng key trả cùng kết quả; rollback cả notification và receipt khi lỗi; key khác payload trả 409; scope tách actor/action; retry filter không lấy thêm phiếu mới; notification/reminder không trùng khi nhiều request chạy song song. HTTP test kiểm tra header và replay xuyên hai alias admin.
+Nhóm PostgreSQL còn kiểm tra idempotency: submit/review/confirm/reject/finalize/bulk chạy đồng thời cùng key trả cùng kết quả; rollback cả notification và receipt khi lỗi; key khác payload trả 409; scope tách actor/action; retry filter không lấy thêm phiếu mới; notification/reminder không trùng khi nhiều request chạy song song. HTTP test kiểm tra header và replay trên route duyệt cuối của Phòng Đào tạo.
 
 Deadline được kiểm tra bằng unit test theo role và biên trước/đúng/sau hạn, ngày hạn theo giờ Việt Nam, null, phạm vi từng field; application test chặn trước khi ghi. PostgreSQL/HTTP test kiểm tra submit quá hạn 409, retry sau gia hạn, replay sau hạn, confirm kèm điểm không để lại dữ liệu và batch quá hạn không tạo notification.

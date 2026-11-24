@@ -1,3 +1,5 @@
+import type { Prisma } from '../../../generated/prisma/client';
+
 // ─── Semester ─────────────────────────────────────────────────────────────────
 export type ApiSemester = 'HK1' | 'HK2' | 'SUMMER';
 
@@ -30,6 +32,8 @@ export type EvaluationDetailResponse = EvaluationListResponse & {
   note: string | null;
   statusLabel: string;
   classScore: number | null;
+  classCriteriaScores: Array<{ criteriaCode: string; classScore: number | null }>;
+  classLeaderReviewData: Prisma.JsonValue;
   finalScore: number | null;
   studyScore: number;
   disciplineScore: number;
@@ -86,7 +90,7 @@ export type EvaluationAdminListItem = {
   submittedAt: Date | null;
   classLeaderReviewedAt?: Date | null;
   classReviewedAt?: Date | null;
-  student: { id: string; fullName: string; email: string };
+  student: { id: string; fullName: string; email: string; studentCode?: string | null };
   class: { id: string; code: string; name: string };
   faculty: { id: string; code: string; name: string };
   semester: ApiSemester;
@@ -108,12 +112,15 @@ export type EvaluationAdminApprovalListItem = {
   submittedAt: Date | null;
   classLeaderReviewedAt?: Date | null;
   classReviewedAt?: Date | null;
-  student: { id: string; fullName: string; email: string };
+  student: { id: string; fullName: string; email: string; studentCode?: string | null };
   class: { id: string; code: string; name: string };
   faculty: { id: string; code: string; name: string };
   semester: ApiSemester;
   academicYear: string;
+  studentScore?: number | null;
+  selfScore?: number | null;
   classScore: number | null;
+  finalScore: number | null;
   rank: string | null;
 };
 

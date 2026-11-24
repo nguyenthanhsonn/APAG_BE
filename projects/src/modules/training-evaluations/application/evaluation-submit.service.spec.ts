@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   evaluationFixture,
   evaluationWriteMocks,
@@ -110,6 +114,51 @@ function setup(form = evaluationFixture()) {
 }
 
 describe('EvaluationSubmitService', () => {
+  it('creates a class leader’s draft from their own active student enrollment', async () => {
+    const actor = { id: 'leader', role: UserRole.ClassLeader };
+    const form = evaluationFixture({ studentId: actor.id });
+    const classStudent = { findFirst: jest.fn().mockResolvedValue(null) };
+    const evaluationForm = {
+      findUnique: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue(form),
+    };
+    const service = new EvaluationSubmitService(
+      {
+        classStudent,
+        evaluationForm,
+        semester: {
+          findUnique: jest.fn().mockResolvedValue({ id: 'semester' }),
+        },
+      } as never,
+      {} as never,
+      {} as never,
+    );
+    const dto = { semester: 'HK1', academicYear: '2026-2027' } as const;
+
+    await expect(service.create(actor, dto)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(evaluationForm.create).not.toHaveBeenCalled();
+    classStudent.findFirst.mockResolvedValueOnce({ classId: 'class' });
+    await expect(service.create(actor, dto)).resolves.toMatchObject({
+      studentId: actor.id,
+      status: FormStatus.draft,
+    });
+    expect(classStudent.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { studentId: actor.id, deletedAt: null },
+      }),
+    );
+    expect(evaluationForm.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          studentId: actor.id,
+          classId: 'class',
+        }),
+      }),
+    );
+  });
+
   it.each([FormStatus.draft, FormStatus.rejected])(
     'submits %s and clears the previous review cycle atomically',
     async (status) => {

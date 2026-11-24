@@ -50,6 +50,11 @@ export const evaluationListSelect = {
 // ─── GET /:id – chi tiết phiếu ────────────────────────────────────────────────
 export const evaluationDetailSelect = {
   ...evaluationListSelect,
+  classLeaderReviewData: true,
+  criteriaScores: {
+    where: { classScore: { not: null } },
+    select: { classScore: true, criteria: { select: { code: true } } },
+  },
   note: true,
   classScore: true,
   finalScore: true,
@@ -114,7 +119,18 @@ export const evaluationAdminListSelect = {
   classScore: true,
   finalScore: true,
   rank: true,
-  student: { select: { id: true, fullName: true, email: true } },
+  student: {
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      username: true,
+      classStudents: {
+        select: { studentCode: true },
+        take: 1,
+      },
+    },
+  },
   class: {
     select: {
       id: true,
@@ -136,9 +152,22 @@ export const evaluationAdminApprovalListSelect = {
   submittedAt: true,
   classLeaderReviewedAt: true,
   classReviewedAt: true,
+  studentScore: true,
   classScore: true,
+  finalScore: true,
   rank: true,
-  student: { select: { id: true, fullName: true, email: true } },
+  student: {
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      username: true,
+      classStudents: {
+        select: { studentCode: true },
+        take: 1,
+      },
+    },
+  },
   class: {
     select: {
       id: true,

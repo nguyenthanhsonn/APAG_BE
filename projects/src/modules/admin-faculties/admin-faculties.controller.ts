@@ -77,11 +77,13 @@ export class FacultiesController {
   @ApiResponse({ status: 200, description: 'Thao tác thành công.' })
   @Get(':id/classes/:classId/council-review')
   getCouncilReview(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('classId', ParseUUIDPipe) classId: string,
-    @Query('semesterId') semesterId?: string,
+    @Query('semesterId', new ParseUUIDPipe({ optional: true })) semesterId?: string,
   ) {
-    return this.adminFacultiesService.getCouncilReviewForClass(id, classId, semesterId);
+    return this.adminFacultiesService.getCouncilReviewForViewer(userId, role, id, classId, semesterId);
   }
 }
 

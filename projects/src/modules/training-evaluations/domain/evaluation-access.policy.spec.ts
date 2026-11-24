@@ -17,9 +17,17 @@ describe('EvaluationAccessPolicy', () => {
         facultyAvailable: true,
       };
       expect(Policy.canRead(user, facts)).toBe(true);
-      expect(Policy.canEdit(user, facts)).toBe(role === UserRole.Student);
+      expect(Policy.canEdit(user, facts)).toBe(
+        [UserRole.Student, UserRole.ClassLeader].includes(role),
+      );
       expect(Policy.canReview(user, facts)).toBe(
-        [UserRole.ClassLeader, UserRole.Advisor].includes(role),
+        [
+          UserRole.ClassLeader,
+          UserRole.Advisor,
+          UserRole.Faculty,
+          UserRole.TrainingDepartment,
+          UserRole.Admin,
+        ].includes(role),
       );
       expect(Policy.canSubmitClass(user, facts)).toBe(
         [UserRole.ClassLeader, UserRole.Advisor].includes(role),
@@ -27,8 +35,11 @@ describe('EvaluationAccessPolicy', () => {
       expect(Policy.canApproveFaculty(user, facts)).toBe(
         role === UserRole.Faculty,
       );
-      expect(Policy.canFinalize(user)).toBe(
+      expect(Policy.canReadAll(user)).toBe(
         [UserRole.Admin, UserRole.TrainingDepartment].includes(role),
+      );
+      expect(Policy.canFinalize(user)).toBe(
+        role === UserRole.TrainingDepartment,
       );
     },
   );
@@ -51,6 +62,14 @@ describe('EvaluationAccessPolicy', () => {
     expect(
       Policy.canEdit(actor(UserRole.Student), { studentId: 'other' }),
     ).toBe(false);
+  });
+  it('lets class leaders edit only their own form, even when assigned to review other forms', () => {
+    const leader = actor(UserRole.ClassLeader);
+    const classmate = { studentId: 'other', assignedToClass: true };
+    expect(Policy.canRead(leader, { studentId: 'user' })).toBe(true);
+    expect(Policy.canEdit(leader, { studentId: 'user' })).toBe(true);
+    expect(Policy.canReview(leader, classmate)).toBe(true);
+    expect(Policy.canEdit(leader, classmate)).toBe(false);
   });
   it('distinguishes the two class forwarding roles and rejects cross-faculty/inactive assignments', () => {
     expect(
@@ -102,7 +121,7 @@ describe('EvaluationAccessPolicy', () => {
         assignedToClass: true,
       }),
     ).toBe(false);
-    expect(() => Policy.assertRole('review', actor(UserRole.Admin))).toThrow(
+    expect(() => Policy.assertRole('review', actor(UserRole.Student))).toThrow(
       ForbiddenException,
     );
     expect(() =>

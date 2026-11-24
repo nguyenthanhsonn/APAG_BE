@@ -40,7 +40,7 @@ Cập nhật deadline 20/10/2026: submit dùng studentDeadline; chấm/xác nh�
 | `GET /admin/evaluations` | Admin hoặc PĐT | Bộ lọc học kỳ, lớp, khoa, trạng thái, từ khóa; `findMany` + `count`, join relations |
 | `GET /training-evaluations/:id`, `/:id/summary`, `/:id/status` | Sinh viên sở hữu phiếu; lớp trưởng/CVHT đúng assignment lớp; khoa đúng assignment khoa; admin/PĐT toàn hệ thống | `findAccessible` lấy dữ kiện scope rồi kiểm tra `canRead` trước mapper; truy cập ngoài scope bị từ chối |
 
-DTO danh sách phiếu mặc định page 1, limit 20, tối đa 100. Alias admin hiện có `/admin/training-evaluations` và `/training-department/evaluations` với cùng handler.
+DTO danh sách phiếu mặc định page 1, limit 20, tối đa 100. Các prefix `/admin/evaluations`, `/admin/training-evaluations` và `/training-department/evaluations` dùng chung handler cho danh sách và mở lại phiếu.
 
 Đo trang đầu và trang sâu, có/không keyword, bộ lọc lớp và khoa, response bytes, số query và plan thực tế. Không mặc định coi `relationLoadStrategy: 'join'` luôn nhanh hơn: cần so sánh trên dataset đủ lớn. Access policy ngày 20/10 đã siết detail/summary/status theo assignment và có test HTTP scope lớp/khoa, thu hồi assignment và role hiện tại từ DB.
 
@@ -63,10 +63,9 @@ Các bước chuyển danh sách đọc tập phiếu đủ điều kiện và t
 ## 5. Trả về, phê duyệt cuối và mở lại
 
 - `POST /training-evaluations/:id/return-to-student`: CVHT trả về với lý do, dùng chung `review(... action: reject)`; hiện yêu cầu trạng thái của bước CVHT. Transaction reset điểm duyệt và tạo notification; emit sau commit.
-- `POST /training-evaluations/:id/review`: controller hiện chỉ cho admin; helper chọn bước từ `faculty_approved`, cho approve hoặc reject. Không suy diễn các role có trong helper đều truy cập được route này.
-- `PATCH /admin/evaluations/:id/finalize`: admin/PĐT, yêu cầu `faculty_approved`, chưa khóa, có điểm lớp hoặc điểm cuối được gửi lên; ghi `finalized`, điểm và xếp loại.
-- `PATCH /admin/evaluations/bulk-finalize`: tối đa 500 ID đầu vào; lấy phiếu `faculty_approved`, bỏ qua ID không khớp trạng thái; transaction gồm một update cho mỗi phiếu.
-- `POST /admin/evaluations/finalize-by-filter`: lấy toàn bộ candidates theo bộ lọc; hơn 500 yêu cầu `confirmLargeAction=true`. Xác nhận này không tạo hard cap hoặc chia batch.
+- `PATCH /training-department/evaluations/:id/finalize`: chỉ PĐT, yêu cầu `faculty_approved`, chưa khóa, có điểm lớp hoặc điểm cuối được gửi lên; ghi `finalized`, điểm và xếp loại.
+- `PATCH /training-department/evaluations/bulk-finalize`: chỉ PĐT, tối đa 500 ID đầu vào; lấy phiếu `faculty_approved`, bỏ qua ID không khớp trạng thái; transaction gồm một update cho mỗi phiếu.
+- `POST /training-department/evaluations/finalize-by-filter`: chỉ PĐT, lấy toàn bộ candidates theo bộ lọc; hơn 500 yêu cầu `confirmLargeAction=true`. Xác nhận này không tạo hard cap hoặc chia batch.
 - `POST /admin/evaluations/:id/reopen`: admin/PĐT đưa phiếu không ở `draft` về `draft`, xóa thời điểm nộp, điểm lớp/điểm cuối và các mốc reviewer; giữ điểm tự chấm. Nhánh này không reset `isLocked`, nên mở lại trạng thái chưa đồng nghĩa mở khóa để sửa.
 
 Đặc biệt: nhánh batch dùng `classScore ?? 0` và bộ lọc đọc candidates không kiểm tra `isLocked` như nhánh finalize một phiếu. Đây là khác biệt từ source cần kiểm thử và thống nhất trước tối ưu. Cập nhật 20/10/2026: batch ghi theo id + version của từng candidate, conflict rollback toàn batch; khóa/mở khóa học kỳ cũng tăng version. Test cạnh tranh đã chạy riêng trong schema tạm; các số đo baseline ngày 19/10 không thay đổi.

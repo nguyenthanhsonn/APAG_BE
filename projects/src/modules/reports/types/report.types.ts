@@ -49,6 +49,7 @@ export type FlatExportRow = {
   academicYear: string;
   studentScore: number | string;
   classScore: number | string;
+  facultyScore: number | string;
   finalScore: number | string;
   classification: string;
   statusLabel: string;

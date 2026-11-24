@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import {
   evaluationFixture,
   evaluationWriteMocks,
@@ -49,24 +49,17 @@ function setup(
   const scores = {
     reviewScores: jest.fn().mockResolvedValue({ version: form.version }),
   };
-  const finalization = {
-    finalizeReviewedForm: jest
-      .fn()
-      .mockResolvedValue({ status: FormStatus.finalized }),
-  };
   return {
     prisma,
     queries,
     notifications,
     scores,
-    finalization,
     events,
     service: new EvaluationReviewService(
       prisma as never,
       notifications as never,
       queries as never,
       scores as never,
-      finalization as never,
     ),
   };
 }
@@ -121,22 +114,25 @@ describe('EvaluationReviewService', () => {
     expect(events).toEqual(['saved', 'commit', 'emit']);
   });
 
-  it('delegates the legacy admin approval to finalization', async () => {
-    const form = evaluationFixture({
-      status: FormStatus.faculty_approved,
-      classScore: 80,
-    });
-    const { service, prisma, finalization } = setup(form);
-    await service.review(reviewerFixture(UserRole.Admin), 'form', {
-      action: 'approve',
-    });
-    expect(finalization.finalizeReviewedForm).toHaveBeenCalledWith(
-      reviewerFixture(UserRole.Admin),
-      form,
-      prisma,
-    );
-    expect(prisma.evaluationForm.updateMany).not.toHaveBeenCalled();
-  });
+  it.each([
+    { action: 'approve' },
+    { action: 'reject', comment: 'Bổ sung minh chứng' },
+  ] as const)(
+    'blocks student review with $action before querying or replaying a receipt',
+    async (decision) => {
+      const { service, prisma } = setup();
+      await expect(
+        service.review(
+          reviewerFixture(UserRole.Student),
+          'form',
+          decision,
+          'already-used-key',
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.evaluationForm.findUnique).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
 
   it('does not emit when returning a form fails to commit', async () => {
     const { service, prisma, notifications } = setup();

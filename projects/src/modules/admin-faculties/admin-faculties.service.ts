@@ -9,6 +9,11 @@ import {
 import { UserRole, type PaginatedResult } from '../../common/shared';
 import { FormStatus, Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import {
+  toAcademicYear,
+  toApiSemester,
+  toClassificationLabel,
+} from '../training-evaluations/helpers/evaluation.mapper';
 import { GetMajorsQueryDto } from '../admin-majors/dto/get-majors-query.dto';
 import { mapToAdminMajorResponse } from '../admin-majors/mappers/admin-major.mapper';
 import { adminMajorSelect } from '../admin-majors/selects/admin-major.select';
@@ -384,11 +389,22 @@ export class AdminFacultiesService {
   /**
    * Lấy danh sách đánh giá của sinh viên trong một Lớp cho Hội đồng Khoa duyệt (Biên bản Hội đồng Khoa)
    */
-  async getCouncilReviewForClass(
+  async getCouncilReviewForViewer(
+    userId: string,
+    role: UserRole,
     facultyId: string,
     classId: string,
     semesterId?: string,
   ): Promise<FacultyCouncilReviewResponse> {
+    if (role !== UserRole.Admin) {
+      const assignment = role === UserRole.Faculty && await this.prisma.facultyAssignment.findUnique({
+        where: { userId },
+        select: { facultyId: true },
+      });
+      if (!assignment || assignment.facultyId !== facultyId) {
+        throw new ForbiddenException('Bạn không được quản lý khoa này');
+      }
+    }
     const classRecord = await this.prisma.class.findUnique({
       where: { id: classId },
       select: {
@@ -420,21 +436,14 @@ export class AdminFacultiesService {
       orderBy: { studentCode: 'asc' },
     });
 
-    const formWhere: Prisma.EvaluationFormWhereInput = { classId };
-    if (semesterId) {
-      formWhere.semesterId = semesterId;
-    } else {
-      const activeSemester = await this.prisma.semester.findFirst({
-        where: { isActive: true },
-        select: { id: true },
-      });
-      if (activeSemester) {
-        formWhere.semesterId = activeSemester.id;
-      }
-    }
+    const semester = await this.prisma.semester.findFirst({
+      where: semesterId ? { id: semesterId } : { isActive: true },
+      select: { id: true, year: true, semester: true },
+    });
+    if (!semester) throw new NotFoundException('Không tìm thấy học kỳ của biên bản');
 
-    let evaluationForms = await this.prisma.evaluationForm.findMany({
-      where: formWhere,
+    const evaluationForms = await this.prisma.evaluationForm.findMany({
+      where: { classId, semesterId: semester.id },
       select: {
         id: true,
         studentId: true,
@@ -454,30 +463,6 @@ export class AdminFacultiesService {
         },
       },
     });
-
-    if (evaluationForms.length === 0 && !semesterId) {
-      evaluationForms = await this.prisma.evaluationForm.findMany({
-        where: { classId },
-        select: {
-          id: true,
-          studentId: true,
-          status: true,
-          classScore: true,
-          finalScore: true,
-          studentScore: true,
-          rank: true,
-          note: true,
-          student: {
-            select: {
-              id: true,
-              fullName: true,
-              username: true,
-              dateOfBirth: true,
-            },
-          },
-        },
-      });
-    }
 
     const evalMap = new Map(evaluationForms.map((e) => [e.studentId, e]));
 
@@ -525,7 +510,7 @@ export class AdminFacultiesService {
     const items: FacultyCouncilReviewItem[] = allStudents.map((item, index) => {
       const form = item.form;
       const dob = item.dateOfBirth
-        ? new Date(item.dateOfBirth).toLocaleDateString('vi-VN')
+        ? item.dateOfBirth.toLocaleDateString('vi-VN', { timeZone: 'UTC' })
         : '—';
 
       return {
@@ -538,7 +523,7 @@ export class AdminFacultiesService {
         status: form?.status ?? 'draft',
         classScore: form?.classScore ?? form?.studentScore ?? null,
         facultyScore: form?.finalScore ?? form?.classScore ?? null,
-        classification: form?.rank ?? '—',
+        classification: toClassificationLabel(form?.rank ?? null) ?? '—',
         note: form?.note ?? '',
       };
     });
@@ -546,6 +531,11 @@ export class AdminFacultiesService {
     return {
       classId: classRecord.id,
       className: classRecord.name || classRecord.code,
+      semester: {
+        id: semester.id,
+        code: toApiSemester(semester.semester),
+        academicYear: toAcademicYear(semester.year),
+      },
       totalStudents: items.length,
       items,
     };
