@@ -36,27 +36,53 @@ export class BbHopKhoaStudentDto {
   @MaxLength(150)
   hoTen: string;
 
+  @IsOptional()
   @IsString()
-  @MaxLength(20)
-  ngaySinh: string;
+  @MaxLength(50)
+  ngaySinh?: string;
 
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Max(100)
-  drlLop: number;
+  drlLop?: number;
 
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Max(100)
-  drlKhoa: number;
+  drlKhoa?: number;
 
-  @IsIn(TRAINING_RANK_LABELS)
-  xepLoai: TrainingRankLabel;
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  xepLoai?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(500)
   ghiChu?: string;
+
+  @Allow()
+  studentCode?: string;
+
+  @Allow()
+  fullName?: string;
+
+  @Allow()
+  dateOfBirth?: string;
+
+  @Allow()
+  classScore?: number;
+
+  @Allow()
+  facultyScore?: number;
+
+  @Allow()
+  classification?: string;
+
+  @Allow()
+  note?: string;
 }
 
 export class BbHopKhoaMeetingInfoDto {
@@ -77,15 +103,15 @@ export class BbHopKhoaMeetingInfoDto {
   namHoc: string;
 
   @IsString()
-  @MaxLength(2)
+  @MaxLength(10)
   ngayHop: string;
 
   @IsString()
-  @MaxLength(2)
+  @MaxLength(10)
   thangHop: string;
 
   @IsString()
-  @MaxLength(4)
+  @MaxLength(10)
   namHop: string;
 
   @IsString()

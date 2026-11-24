@@ -7,6 +7,7 @@ import { EvaluationReviewService } from './application/evaluation-review.service
 import { EvaluationScoreService } from './application/evaluation-score.service';
 import { EvaluationSubmitService } from './application/evaluation-submit.service';
 import { AdminTrainingEvaluationsController } from './presentation/admin-training-evaluations.controller';
+import { TrainingDepartmentEvaluationsController } from './presentation/training-department-evaluations.controller';
 import { TrainingEvaluationsController } from './presentation/training-evaluations.controller';
 
 @Module({
@@ -14,8 +15,9 @@ import { TrainingEvaluationsController } from './presentation/training-evaluatio
   controllers: [
     TrainingEvaluationsController,
     AdminTrainingEvaluationsController,
+    TrainingDepartmentEvaluationsController,
   ],
-  // Luồng phụ thuộc một chiều: review dùng score/finalize; các use case dùng query để tra phân công.
+  // Luồng phụ thuộc một chiều: review dùng score; các use case dùng query để tra phân công.
   // Các application service truy cập Prisma trực tiếp, không thêm repository trung gian.
   providers: [
     EvaluationQueryService,

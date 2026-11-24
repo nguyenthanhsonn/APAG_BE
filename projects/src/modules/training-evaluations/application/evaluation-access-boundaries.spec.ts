@@ -1,11 +1,9 @@
 import { ForbiddenException } from '@nestjs/common';
+import { ROLES_KEY } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/shared';
-import { FormStatus } from '../../../generated/prisma/client';
 import { EvidencesService } from '../../evidences/evidences.service';
-import {
-  reviewerFixture,
-  evaluationFixture,
-} from '../../../../test/fixtures/evaluation.fixture';
+import { reviewerFixture } from '../../../../test/fixtures/evaluation.fixture';
+import { TrainingEvaluationsController } from '../presentation/training-evaluations.controller';
 import { EvaluationFinalizeService } from './evaluation-finalize.service';
 import { EvaluationQueryService } from './evaluation-query.service';
 import { EvaluationReviewService } from './evaluation-review.service';
@@ -26,12 +24,23 @@ const cases = [
   'bulk-finalize',
   'filter-finalize',
   'reopen',
-  'legacy-finalize',
   'admin-list',
   'evidence-link',
   'evidence-remove',
 ] as const;
 describe('application authorization boundaries', () => {
+  it.each(['create', 'findMine'] as const)(
+    'allows students and class leaders through the roles guard for %s',
+    (handler) => {
+      expect(
+        Reflect.getMetadata(
+          ROLES_KEY,
+          TrainingEvaluationsController.prototype[handler],
+        ),
+      ).toEqual([UserRole.Student, UserRole.ClassLeader]);
+    },
+  );
+
   it.each(cases)(
     'rejects wrong-role %s with 403 before queries, status validation or receipt replay',
     async (name) => {
@@ -58,7 +67,6 @@ describe('application authorization boundaries', () => {
         {} as never,
         queries,
         scores,
-        finalize,
       );
       const evidence = new EvidencesService(prisma as never);
       const student = reviewerFixture(UserRole.Student),
@@ -77,9 +85,9 @@ describe('application authorization boundaries', () => {
         'draft-edit': () => scores.updateDraft(admin, 'form', {}),
         'review-scores': () =>
           scores.reviewScores(student, 'form', { scores: [] }),
-        'confirm-review': () => review.confirmReview(admin, 'form'),
+        'confirm-review': () => review.confirmReview(student, 'form'),
         'review-decision': () =>
-          review.review(faculty, 'form', { action: 'approve' }),
+          review.review(student, 'form', { action: 'approve' }),
         'class-to-advisor': () =>
           submit.submitClassToAdvisor(advisor, 'class', {}),
         'class-to-faculty': () =>
@@ -87,16 +95,10 @@ describe('application authorization boundaries', () => {
         'faculty-approval': () =>
           submit.submitFacultyToTrainingDepartment(admin, 'faculty', {}),
         finalize: () =>
-          finalize.finalize(student, 'form', {}, 'already-used-key'),
-        'bulk-finalize': () =>
-          finalize.bulkFinalize(student, { ids: ['form'] }),
-        'filter-finalize': () => finalize.finalizeByFilter(student, {}),
+          finalize.finalize(admin, 'form', {}, 'already-used-key'),
+        'bulk-finalize': () => finalize.bulkFinalize(admin, { ids: ['form'] }),
+        'filter-finalize': () => finalize.finalizeByFilter(admin, {}),
         reopen: () => finalize.reopen(student, 'form'),
-        'legacy-finalize': () =>
-          finalize.finalizeReviewedForm(student, {
-            ...evaluationFixture(),
-            status: FormStatus.faculty_approved,
-          }),
         'admin-list': () =>
           queries.findAdminApprovalList(student, { page: 1, limit: 20 }),
         'evidence-link': () =>

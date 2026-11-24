@@ -20,12 +20,19 @@ export const EVALUATION_ACCESS_ROLES = {
     UserRole.Admin,
     UserRole.TrainingDepartment,
   ],
-  edit: [UserRole.Student],
-  review: [UserRole.ClassLeader, UserRole.Advisor],
-  reviewDecision: [UserRole.ClassLeader, UserRole.Advisor, UserRole.Admin],
+  edit: [UserRole.Student, UserRole.ClassLeader],
+  review: [
+    UserRole.ClassLeader,
+    UserRole.Advisor,
+    UserRole.Faculty,
+    UserRole.TrainingDepartment,
+    UserRole.Admin,
+  ],
   submitClass: [UserRole.ClassLeader, UserRole.Advisor],
   approveFaculty: [UserRole.Faculty],
-  finalize: [UserRole.Admin, UserRole.TrainingDepartment],
+  readAll: [UserRole.Admin, UserRole.TrainingDepartment],
+  reopen: [UserRole.Admin, UserRole.TrainingDepartment],
+  finalize: [UserRole.TrainingDepartment],
 } as const;
 export type EvaluationCapability = keyof typeof EVALUATION_ACCESS_ROLES;
 
@@ -59,8 +66,9 @@ export class EvaluationAccessPolicy {
     facts: EvaluationAccessFacts,
   ): boolean {
     if (!this.hasRole('read', actor)) return false;
-    if (this.canFinalize(actor)) return true;
-    if (actor.role === UserRole.Student) return actor.id === facts.studentId;
+    if (this.canReadAll(actor)) return true;
+    if (this.canEdit(actor, facts)) return true;
+    if (actor.role === UserRole.Student) return false;
     if (actor.role === UserRole.Faculty)
       return this.canApproveFaculty(actor, facts);
     return facts.assignedToClass === true;
@@ -75,7 +83,19 @@ export class EvaluationAccessPolicy {
     actor: EvaluationActor,
     facts: EvaluationAccessFacts,
   ): boolean {
-    return this.hasRole('review', actor) && facts.assignedToClass === true;
+    if (!this.hasRole('review', actor)) return false;
+    if (
+      actor.role === UserRole.TrainingDepartment ||
+      actor.role === UserRole.Admin
+    )
+      return true;
+    if (actor.role === UserRole.Faculty) {
+      return (
+        Boolean(facts.assignedFacultyId) &&
+        facts.assignedFacultyId === facts.facultyId
+      );
+    }
+    return facts.assignedToClass === true;
   }
   static canSubmitClass(
     actor: EvaluationActor,
@@ -97,6 +117,9 @@ export class EvaluationAccessPolicy {
       facts.assignedFacultyId === facts.facultyId &&
       facts.facultyAvailable !== false
     );
+  }
+  static canReadAll(actor: EvaluationActor): boolean {
+    return this.hasRole('readAll', actor);
   }
   static canFinalize(actor: EvaluationActor): boolean {
     return this.hasRole('finalize', actor);

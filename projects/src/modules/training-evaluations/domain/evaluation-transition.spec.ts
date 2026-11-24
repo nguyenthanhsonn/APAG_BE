@@ -1,9 +1,9 @@
 import { ConflictException } from '@nestjs/common';
 import { FormStatus } from '../../../generated/prisma/client';
 import {
-assertReopenTransition,
-assertTransition,
-canTransition,
+  assertReopenTransition,
+  assertTransition,
+  canTransition,
 } from './evaluation-transition';
 
 // Hợp đồng workflow độc lập với bảng implementation: thêm cạnh ngoài ý muốn phải làm test fail.
@@ -16,7 +16,6 @@ const allowed = new Set([
   'faculty_approved>finalized',
   'submitted>rejected',
   'class_leader_approved>rejected',
-  'faculty_approved>rejected',
 ]);
 const statuses = Object.values(FormStatus);
 

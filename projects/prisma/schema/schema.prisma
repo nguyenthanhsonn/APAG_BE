@@ -328,6 +328,7 @@ model EvaluationForm {
   adminFinalizedBy      String? @map("admin_finalized_by") @db.Uuid // admin phê duyệt cuối
 
   classLeaderReviewedAt DateTime? @map("class_leader_reviewed_at") @db.Timestamptz
+  classLeaderReviewData Json?     @map("class_leader_review_data")
   classReviewedAt       DateTime? @map("class_reviewed_at") @db.Timestamptz
   adminFinalizedAt      DateTime? @map("admin_finalized_at") @db.Timestamptz
 

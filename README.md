@@ -1,6 +1,6 @@
 # CSMTS - Comprehensive Student Management and Training System
 
-CSMTS là hệ thống quản lý sinh viên và đánh giá kết quả rèn luyện. Dự án gồm backend NestJS/Prisma và frontend Next.js, phục vụ quy trình sinh viên tự đánh giá, ban cán sự/CVHT chấm duyệt cấp lớp, và admin phê duyệt kết quả cuối.
+CSMTS là hệ thống quản lý sinh viên và đánh giá kết quả rèn luyện. Dự án gồm backend NestJS/Prisma và frontend Next.js, phục vụ quy trình sinh viên tự đánh giá, ban cán sự/CVHT chấm duyệt cấp lớp, và Phòng Đào tạo phê duyệt kết quả cuối.
 
 
 ## Tech Stack
@@ -23,31 +23,36 @@ Frontend:
 
 ## Role Chính
 
-Hệ thống hiện có 3 role:
-
 | Role | Mô tả |
 |---|---|
 | `student` | Sinh viên tự tạo, lưu nháp, cập nhật và nộp phiếu đánh giá rèn luyện. |
-| `class_council` | Ban cán sự lớp/CVHT xem lớp được phân công, chấm điểm lớp và gửi phiếu lên admin. |
-| `admin` | Quản trị hệ thống, quản lý danh mục/sinh viên/lớp và phê duyệt kết quả cuối. |
+| `class_leader` | Lớp trưởng chấm, xác nhận và gửi phiếu lên CVHT. |
+| `advisor` | CVHT chấm, xác nhận và gửi phiếu lên khoa. |
+| `faculty` | Khoa duyệt và gửi phiếu lên Phòng Đào tạo. |
+| `training_department` | Phòng Đào tạo phê duyệt kết quả cuối. |
+| `admin` | Quản trị hệ thống, quản lý danh mục, sinh viên và lớp. |
 
 ## Quy Trình Đánh Giá Rèn Luyện
 
 ```text
 draft
   -> submitted
+  -> class_leader_approved
   -> class_approved
+  -> faculty_approved
   -> finalized
 ```
 
 Ý nghĩa:
 - `draft`: sinh viên đang điền hoặc lưu nháp.
 - `submitted`: sinh viên đã nộp, chờ ban cán sự/CVHT duyệt.
-- `class_approved`: lớp/CVHT đã chấm xong, gửi lên admin.
-- `finalized`: admin đã phê duyệt kết quả cuối.
+- `class_leader_approved`: lớp trưởng đã gửi phiếu lên CVHT.
+- `class_approved`: CVHT đã gửi phiếu lên khoa.
+- `faculty_approved`: khoa đã gửi phiếu lên Phòng Đào tạo.
+- `finalized`: Phòng Đào tạo đã phê duyệt kết quả cuối.
 - `rejected`: phiếu bị trả về/chưa hợp lệ.
 
-Điểm chính thức admin dùng để duyệt cuối là `classScore`. `studentScore` vẫn được lưu để sinh viên xem lại phần tự chấm, nhưng không dùng để tính "chênh lệch điểm" ở màn hình admin.
+Phòng Đào tạo dùng `classScore` làm điểm cuối mặc định. `studentScore` vẫn được lưu để sinh viên xem lại phần tự chấm, nhưng không dùng để tính "chênh lệch điểm" ở màn hình admin.
 
 ## Chạy Backend
 
@@ -134,17 +139,22 @@ GET   /class-council/classes/:id
 GET   /training-evaluations?classId=...
 GET   /training-evaluations/:id
 PATCH /training-evaluations/:id/review-scores
-POST  /training-evaluations/:id/review
+POST  /training-evaluations/:id/confirm-review
 ```
 
-Admin:
+Phòng Đào tạo
+
+```http
+GET   /training-department/evaluations
+PATCH /training-department/evaluations/:id/finalize
+PATCH /training-department/evaluations/bulk-finalize
+POST  /training-department/evaluations/finalize-by-filter
+```
+
+Admin
 
 ```http
 GET   /admin/evaluations
-PATCH /admin/evaluations/:id/finalize
-PATCH /admin/evaluations/bulk-finalize
-POST  /admin/evaluations/finalize-by-filter
-
 GET   /admin/classes
 GET   /admin/students
 GET   /admin/faculties

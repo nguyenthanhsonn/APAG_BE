@@ -32,6 +32,7 @@ import { ConfirmImportStudentsDto } from './dto/confirm-import-students.dto';
 import { CreateClassDto } from './dto/create-class.dto';
 import { GetClassesQueryDto } from './dto/get-classes-query.dto';
 import { GetClassStudentsQueryDto } from './dto/get-class-students-query.dto';
+import { GetFacultyClassEvaluationsQueryDto } from './dto/get-faculty-class-evaluations-query.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { UpdateClassLeadersDto } from './dto/update-class-leaders.dto';
 import {
@@ -184,6 +185,16 @@ export class ClassLeaderClassesController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.adminClassCatalogService.findOneForClassLeader(userId, role, id);
+  }
+
+  @Get(':classId/student-evaluations')
+  @Roles(UserRole.Faculty)
+  findFacultyClassEvaluations(
+    @CurrentUser('id') userId: string,
+    @Param('classId', ParseUUIDPipe) classId: string,
+    @Query() query: GetFacultyClassEvaluationsQueryDto,
+  ) {
+    return this.adminClassesService.findFacultyClassEvaluations(userId, classId, query);
   }
 
   @Get(':classId/students')

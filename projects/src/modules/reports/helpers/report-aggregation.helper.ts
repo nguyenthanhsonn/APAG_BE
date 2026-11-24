@@ -160,6 +160,10 @@ export function rollUpToFaculties(
 
 /** Chuyển 1 dòng danh sách admin (nested) sang dòng phẳng để render Excel/PDF. */
 export function flattenForExport(item: EvaluationAdminListItem): FlatExportRow {
+  const classScoreVal = item.classScore ?? '';
+  const facultyScoreVal = (item as any).facultyScore ?? classScoreVal;
+  const finalScoreVal = item.finalScore ?? classScoreVal;
+
   return {
     fullName: item.student.fullName,
     email: item.student.email,
@@ -168,8 +172,9 @@ export function flattenForExport(item: EvaluationAdminListItem): FlatExportRow {
     semester: item.semester,
     academicYear: item.academicYear,
     studentScore: item.studentScore ?? '',
-    classScore: item.classScore ?? '',
-    finalScore: item.finalScore ?? '',
+    classScore: classScoreVal,
+    facultyScore: facultyScoreVal,
+    finalScore: finalScoreVal,
     classification: item.classification ?? '',
     statusLabel: item.statusLabel,
   };

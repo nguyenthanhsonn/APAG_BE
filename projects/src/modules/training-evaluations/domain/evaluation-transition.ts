@@ -29,13 +29,8 @@ export const EVALUATION_TRANSITIONS = {
     from: [FormStatus.faculty_approved],
     target: FormStatus.finalized,
   },
-  // Giữ các nhánh trả về đã có ở review của lớp trưởng, CVHT và admin.
   reject: {
-    from: [
-      FormStatus.submitted,
-      FormStatus.class_leader_approved,
-      FormStatus.faculty_approved,
-    ],
+    from: [FormStatus.submitted, FormStatus.class_leader_approved],
     target: FormStatus.rejected,
   },
   // Ngoại lệ quản trị hiện có, được kiểm tra riêng bởi assertReopenTransition.
@@ -89,7 +84,7 @@ export function assertReopenTransition(current: FormStatus): void {
   }
 }
 
-type ReviewTransition = 'classLeaderApproval' | 'advisorApproval' | 'finalize';
+type ReviewTransition = 'classLeaderApproval' | 'advisorApproval';
 const REVIEW_STAGES: Partial<
   Record<UserRole, { transition: ReviewTransition; notePrefix: string }>
 > = {
@@ -101,7 +96,6 @@ const REVIEW_STAGES: Partial<
     transition: 'advisorApproval',
     notePrefix: '[CVHT trả về]',
   },
-  [UserRole.Admin]: { transition: 'finalize', notePrefix: '[Học viện trả về]' },
 };
 
 export type ReviewStageConfig = {
@@ -115,7 +109,7 @@ export function resolveReviewStage(
   role: UserRole,
   current: FormStatus,
 ): ReviewStageConfig {
-  EvaluationAccessPolicy.assertRole('reviewDecision', { id: '', role });
+  EvaluationAccessPolicy.assertRole('review', { id: '', role });
   const stage = REVIEW_STAGES[role];
   if (!stage)
     throw new ForbiddenException(
@@ -151,9 +145,27 @@ export function assertReviewScoresEditable(
   status: FormStatus,
 ): void {
   EvaluationAccessPolicy.assertRole('review', { id: '', role });
-  const transition =
-    role === UserRole.ClassLeader
-      ? EVALUATION_TRANSITIONS.classLeaderApproval
-      : EVALUATION_TRANSITIONS.advisorApproval;
-  assertTransition(status, transition.target);
+  if (role === UserRole.ClassLeader) {
+    assertTransition(status, EVALUATION_TRANSITIONS.classLeaderApproval.target);
+  } else if (role === UserRole.Advisor) {
+    assertTransition(status, EVALUATION_TRANSITIONS.advisorApproval.target);
+  } else if (role === UserRole.Faculty) {
+    if (
+      status !== FormStatus.class_approved &&
+      status !== FormStatus.faculty_approved
+    ) {
+      throw new ConflictException(
+        'Khoa chỉ có thể chấm điểm khi lớp/CVHT đã gửi lên hoặc đang ở cấp khoa',
+      );
+    }
+  } else if (role === UserRole.TrainingDepartment || role === UserRole.Admin) {
+    if (
+      status !== FormStatus.faculty_approved &&
+      status !== FormStatus.finalized
+    ) {
+      throw new ConflictException(
+        'Phòng Đào tạo chỉ có thể chấm điểm khi khoa đã gửi lên',
+      );
+    }
+  }
 }

@@ -74,6 +74,11 @@ export function mapToDetailResponse(
     note: evaluation.note,
     statusLabel: toStatusLabel(evaluation.status),
     classScore: evaluation.classScore,
+    classCriteriaScores: evaluation.criteriaScores.map((score) => ({
+      criteriaCode: score.criteria.code,
+      classScore: score.classScore,
+    })),
+    classLeaderReviewData: evaluation.classLeaderReviewData,
     finalScore: evaluation.finalScore,
     studyScore: evaluation.studyScore,
     disciplineScore: evaluation.disciplineScore,
@@ -142,7 +147,15 @@ export function mapToAdminListItem(
     submittedAt: evaluation.submittedAt,
     classLeaderReviewedAt: evaluation.classLeaderReviewedAt ?? null,
     classReviewedAt: evaluation.classReviewedAt ?? null,
-    student: evaluation.student,
+    student: {
+      id: evaluation.student.id,
+      fullName: evaluation.student.fullName,
+      email: evaluation.student.email,
+      studentCode:
+        (evaluation.student as any).classStudents?.[0]?.studentCode ||
+        (evaluation.student as any).username ||
+        null,
+    },
     class: {
       id: evaluation.class.id,
       code: evaluation.class.code,
@@ -174,7 +187,15 @@ export function mapToAdminApprovalListItem(
     submittedAt: evaluation.submittedAt,
     classLeaderReviewedAt: evaluation.classLeaderReviewedAt ?? null,
     classReviewedAt: evaluation.classReviewedAt ?? null,
-    student: evaluation.student,
+    student: {
+      id: evaluation.student.id,
+      fullName: evaluation.student.fullName,
+      email: evaluation.student.email,
+      studentCode:
+        (evaluation.student as any).classStudents?.[0]?.studentCode ||
+        (evaluation.student as any).username ||
+        null,
+    },
     class: {
       id: evaluation.class.id,
       code: evaluation.class.code,
@@ -183,7 +204,10 @@ export function mapToAdminApprovalListItem(
     faculty: evaluation.class.major.faculty,
     semester: toApiSemester(evaluation.semester.semester),
     academicYear: toAcademicYear(evaluation.semester.year),
+    studentScore: evaluation.studentScore,
+    selfScore: evaluation.studentScore,
     classScore: evaluation.classScore,
+    finalScore: evaluation.finalScore,
     rank: evaluation.rank,
   };
 }

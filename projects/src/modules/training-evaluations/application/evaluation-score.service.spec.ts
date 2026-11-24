@@ -9,7 +9,7 @@ import {
   reviewerFixture,
 } from '../../../../test/fixtures/evaluation.fixture';
 import { UserRole } from '../../../common/shared';
-import { FormStatus } from '../../../generated/prisma/client';
+import { FormStatus, Prisma } from '../../../generated/prisma/client';
 import { EvaluationScoreService } from './evaluation-score.service';
 
 function setup(form = evaluationFixture()) {
@@ -105,10 +105,23 @@ describe('EvaluationScoreService', () => {
           classScore: 15,
           classLeaderReviewedBy: null,
           classLeaderReviewedAt: null,
+          classLeaderReviewData: Prisma.DbNull,
         },
       }),
     );
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the existing review note when the advisor changes only the score', async () => {
+    const { prisma, service } = setup(
+      evaluationFixture({ status: FormStatus.class_leader_approved }),
+    );
+    await service.reviewScores(reviewerFixture(UserRole.Advisor), 'form', {
+      scores: [{ criteriaCode: 'I.1', classScore: 0 }],
+    });
+    expect(prisma.formCriteriaScore.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: { classScore: 0 } }),
+    );
   });
 
   it('checks reviewer assignment and criterion bounds before writing', async () => {

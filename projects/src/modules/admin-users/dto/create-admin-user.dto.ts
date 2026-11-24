@@ -45,8 +45,9 @@ export class CreateAdminUserDto {
   @Matches(USERNAME_PATTERN, { message: USERNAME_FORMAT_MESSAGE })
   username: string;
 
+  @IsOptional()
   @IsEmail()
-  email: string;
+  email?: string;
 
   @IsString()
   @MinLength(8)

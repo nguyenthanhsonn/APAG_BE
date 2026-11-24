@@ -8,7 +8,7 @@ import { FormStatus } from '../../../generated/prisma/client';
 import { EvaluationFinalizeService } from './evaluation-finalize.service';
 
 describe('EvaluationFinalizeService', () => {
-  const adminId = '48883133-002c-478f-8ede-b93bab87971d';
+  const trainingId = '48883133-002c-478f-8ede-b93bab87971d';
   function createService(form = evaluationFixture()) {
     const prisma = {
       evaluationForm: {
@@ -34,7 +34,7 @@ describe('EvaluationFinalizeService', () => {
     ]);
 
     const result = await service.bulkFinalize(
-      { id: adminId, role: UserRole.Admin },
+      { id: trainingId, role: UserRole.TrainingDepartment },
       {
         ids: [
           'd5052f8b-a47c-4c6f-81fa-c94c2f785276',
@@ -81,7 +81,7 @@ describe('EvaluationFinalizeService', () => {
     ]);
 
     const result = await service.finalizeByFilter(
-      { id: adminId, role: UserRole.Admin },
+      { id: trainingId, role: UserRole.TrainingDepartment },
       {},
     );
 
@@ -108,7 +108,7 @@ describe('EvaluationFinalizeService', () => {
     prisma.evaluationForm.findMany.mockResolvedValueOnce([]);
 
     const result = await service.finalizeByFilter(
-      { id: adminId, role: UserRole.Admin },
+      { id: trainingId, role: UserRole.TrainingDepartment },
       {},
     );
 
@@ -131,7 +131,10 @@ describe('EvaluationFinalizeService', () => {
     );
 
     await expect(
-      service.finalizeByFilter({ id: adminId, role: UserRole.Admin }, {}),
+      service.finalizeByFilter(
+        { id: trainingId, role: UserRole.TrainingDepartment },
+        {},
+      ),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
@@ -155,15 +158,27 @@ describe('EvaluationFinalizeService', () => {
         evaluationFixture({ status: FormStatus.faculty_approved }),
       );
     await expect(
-      service.finalize({ id: adminId, role: UserRole.Admin }, 'form', {}),
+      service.finalize(
+        { id: trainingId, role: UserRole.TrainingDepartment },
+        'form',
+        {},
+      ),
     ).rejects.toThrow('đã bị khóa');
     await expect(
-      service.finalize({ id: adminId, role: UserRole.Admin }, 'form', {}),
+      service.finalize(
+        { id: trainingId, role: UserRole.TrainingDepartment },
+        'form',
+        {},
+      ),
     ).rejects.toThrow(
       'Không thể chuyển phiếu từ class_approved sang finalized',
     );
     await expect(
-      service.finalize({ id: adminId, role: UserRole.Admin }, 'form', {}),
+      service.finalize(
+        { id: trainingId, role: UserRole.TrainingDepartment },
+        'form',
+        {},
+      ),
     ).rejects.toThrow('chưa có điểm lớp');
     expect(prisma.evaluationForm.updateMany).not.toHaveBeenCalled();
   });
@@ -178,7 +193,7 @@ describe('EvaluationFinalizeService', () => {
     );
 
     const result = await service.finalize(
-      { id: adminId, role: UserRole.Admin },
+      { id: trainingId, role: UserRole.TrainingDepartment },
       'form',
       { finalScore: 75 },
     );
@@ -200,7 +215,7 @@ describe('EvaluationFinalizeService', () => {
       },
     ]);
     await service.bulkFinalize(
-      { id: adminId, role: UserRole.Admin },
+      { id: trainingId, role: UserRole.TrainingDepartment },
       { ids: ['form'] },
     );
     expect(prisma.evaluationForm.updateMany).toHaveBeenCalledWith(
@@ -219,7 +234,7 @@ describe('EvaluationFinalizeService', () => {
     prisma.evaluationForm.findUnique.mockResolvedValueOnce(form);
 
     const result = await service.reopen(
-      { id: adminId, role: UserRole.Admin },
+      { id: 'admin', role: UserRole.Admin },
       'form',
     );
     expect(result).toMatchObject({
@@ -249,7 +264,7 @@ describe('EvaluationFinalizeService', () => {
     ]);
     await expect(
       service.bulkFinalize(
-        { id: adminId, role: UserRole.Admin },
+        { id: trainingId, role: UserRole.TrainingDepartment },
         { ids: ['valid', 'invalid'] },
       ),
     ).rejects.toThrow('Không thể chuyển phiếu từ submitted sang finalized');
@@ -257,25 +272,7 @@ describe('EvaluationFinalizeService', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('does not allow the legacy review route to skip approval steps', async () => {
-    const { service, prisma } = createService();
-    await expect(
-      service.finalizeReviewedForm(
-        { id: adminId, role: UserRole.Admin },
-        {
-          id: 'form',
-          version: 0,
-          status: FormStatus.class_approved,
-          classScore: 80,
-          semester: evaluationFixture().semester,
-        },
-      ),
-    ).rejects.toThrow(
-      'Không thể chuyển phiếu từ class_approved sang finalized',
-    );
-    expect(prisma.evaluationForm.updateMany).not.toHaveBeenCalled();
-  });
-  it('keeps final approval available to admin after the preceding stages have expired', async () => {
+  it('keeps final approval available to the training department after the preceding stages have expired', async () => {
     const form = evaluationFixture({
       status: FormStatus.faculty_approved,
       classScore: 80,
@@ -290,7 +287,7 @@ describe('EvaluationFinalizeService', () => {
     prisma.evaluationForm.findUnique.mockResolvedValueOnce(form);
     expect(
       await service.finalize(
-        { id: adminId, role: UserRole.Admin },
+        { id: trainingId, role: UserRole.TrainingDepartment },
         form.id,
         {},
       ),
