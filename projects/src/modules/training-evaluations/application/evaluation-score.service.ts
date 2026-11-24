@@ -23,6 +23,7 @@ import {
 } from '../domain/evaluation-transition';
 import {
   calculateActivityScore,
+  calculateClassification,
   calculateCommunityScore,
   calculateDisciplineScore,
   calculateRoleScore,
@@ -491,7 +492,7 @@ export class EvaluationScoreService {
           },
           update: {
             classScore: item.classScore,
-            note: item.reviewerNote ?? null,
+            ...(item.reviewerNote !== undefined && { note: item.reviewerNote }),
           },
           select: { id: true },
         });
@@ -511,15 +512,27 @@ export class EvaluationScoreService {
           ? {
               classLeaderReviewedBy: null,
               classLeaderReviewedAt: null,
+              classLeaderReviewData: Prisma.DbNull,
             }
           : {
               classReviewedBy: null,
               classReviewedAt: null,
             };
 
+      const isTrainingDeptOrAdmin =
+        reviewer.role === UserRole.TrainingDepartment ||
+        reviewer.role === UserRole.Admin;
+
       const finished = await tx.evaluationForm.updateMany({
         where: { id, version: claimedVersion },
-        data: { classScore, ...confirmationResetData },
+        data: {
+          classScore,
+          ...(isTrainingDeptOrAdmin && {
+            finalScore: classScore,
+            rank: calculateClassification(classScore),
+          }),
+          ...confirmationResetData,
+        },
       });
       assertEvaluationUpdated(finished.count);
       // Hoàn tất cùng lần ghi đã claim, không tăng version lần thứ hai.

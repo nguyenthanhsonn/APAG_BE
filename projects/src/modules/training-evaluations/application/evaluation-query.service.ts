@@ -87,7 +87,7 @@ export class EvaluationQueryService {
       this.prisma.evaluationForm.findMany({
         where,
         select: evaluationAdminListSelect,
-        orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
@@ -207,11 +207,29 @@ export class EvaluationQueryService {
         class: { select: { major: { select: { facultyId: true } } } },
       }),
     };
-    const evaluation = await this.prisma.evaluationForm.findFirst({
+    let evaluation = await this.prisma.evaluationForm.findFirst({
       where,
       select: accessSelect,
       ...options,
     });
+
+    if (!evaluation) {
+      // Fallback: nếu param id là studentId thay vì formId
+      const fallbackWhere = role === UserRole.Student
+        ? { studentId: userId }
+        : { studentId: id };
+
+      evaluation = await this.prisma.evaluationForm.findFirst({
+        where: fallbackWhere,
+        orderBy: [
+          { semester: { year: 'desc' } },
+          { semester: { semester: 'desc' } },
+          { createdAt: 'desc' },
+        ],
+        select: accessSelect,
+        ...options,
+      });
+    }
 
     if (!evaluation) {
       throw new NotFoundException('Không tìm thấy phiếu đánh giá');
@@ -241,7 +259,9 @@ export class EvaluationQueryService {
         'Bạn không có quyền xem phiếu của khoa khác',
       );
     } else if (role === UserRole.ClassLeader || role === UserRole.Advisor) {
-      await this.assertClassAccess(actor, facts.classId, 'read');
+      if (!EvaluationAccessPolicy.canRead(actor, facts)) {
+        await this.assertClassAccess(actor, facts.classId, 'read');
+      }
     } else {
       assertEvaluationAccess(EvaluationAccessPolicy.canRead(actor, facts));
     }
@@ -256,6 +276,33 @@ export class EvaluationQueryService {
     requiredRole?: UserRole,
   ): Promise<void> {
     EvaluationAccessPolicy.assertRole(action, actor, requiredRole);
+    if (
+      actor.role === UserRole.Admin ||
+      actor.role === UserRole.TrainingDepartment
+    ) {
+      return;
+    }
+    if (actor.role === UserRole.Faculty) {
+      const assignment = await database.facultyAssignment.findUnique({
+        where: { userId: actor.id },
+        select: { facultyId: true },
+      });
+      if (!assignment) {
+        assertEvaluationAccess(
+          false,
+          'Tài khoản khoa chưa được gán khoa quản lý',
+        );
+      }
+      const cls = await database.class.findUnique({
+        where: { id: classId },
+        select: { major: { select: { facultyId: true } } },
+      });
+      assertEvaluationAccess(
+        cls?.major?.facultyId === assignment?.facultyId,
+        'Lớp này không thuộc khoa bạn phụ trách',
+      );
+      return;
+    }
     let assigned = false;
     if (actor.role === UserRole.Advisor) {
       assigned = Boolean(
@@ -344,7 +391,7 @@ export class EvaluationQueryService {
     classId: string | undefined,
     facultyIdQuery?: string,
   ): Promise<{ facultyId?: string }> {
-    if (EvaluationAccessPolicy.canFinalize(user)) return {};
+    if (EvaluationAccessPolicy.canReadAll(user)) return {};
     if (user.role === UserRole.Faculty) {
       const assignment = await this.prisma.facultyAssignment.findUnique({
         where: { userId: user.id },
@@ -370,6 +417,32 @@ export class EvaluationQueryService {
     return {};
   }
 
+  async getTrainingDepartmentOverview(actor: EvaluationActor) {
+    EvaluationAccessPolicy.assertRole('readAll', actor);
+    const faculties = await this.prisma.$queryRaw<Array<{
+      id: string;
+      name: string;
+      totalClasses: number;
+      pendingCount: number;
+      completedCount: number;
+      excellentGoodCount: number;
+    }>>`
+      SELECT faculty.id, faculty.name,
+        count(DISTINCT form.class_id)::int AS "totalClasses",
+        count(*) FILTER (WHERE form.status = 'faculty_approved')::int AS "pendingCount",
+        count(*) FILTER (WHERE form.status = 'finalized')::int AS "completedCount",
+        count(*) FILTER (WHERE form.rank IN ('excellent', 'good'))::int AS "excellentGoodCount"
+      FROM evaluation_forms form
+      JOIN classes class ON class.id = form.class_id
+      JOIN majors major ON major.id = class.major_id
+      JOIN faculties faculty ON faculty.id = major.faculty_id
+      WHERE form.status IN ('faculty_approved', 'finalized')
+      GROUP BY faculty.id, faculty.name
+      ORDER BY faculty.name, faculty.id
+    `;
+    return { faculties };
+  }
+
   /**
    * Lấy danh sách toàn bộ phiếu đánh giá trong hệ thống, có phân trang và bộ lọc nâng cao
    * (lớp, khoa, trạng thái, học kỳ, từ khóa tên/email sinh viên).
@@ -379,7 +452,7 @@ export class EvaluationQueryService {
     actor: EvaluationActor,
     query: AdminListEvaluationsQueryDto,
   ): Promise<PaginatedResult<EvaluationAdminApprovalListItem>> {
-    assertEvaluationAccess(EvaluationAccessPolicy.canRead(actor, {}));
+    EvaluationAccessPolicy.assertRole('readAll', actor);
     const semesterId =
       query.semesterId ??
       (await resolveSemesterId(
@@ -390,7 +463,9 @@ export class EvaluationQueryService {
     const search = query.search?.trim() || query.keyword?.trim();
 
     const where: Prisma.EvaluationFormWhereInput = {
-      status: query.status ?? FormStatus.faculty_approved,
+      status: query.status
+        ? query.status
+        : { in: [FormStatus.faculty_approved, FormStatus.finalized] },
       ...(query.classId && { classId: query.classId }),
       ...(query.facultyId && {
         class: { major: { facultyId: query.facultyId } },
@@ -418,7 +493,7 @@ export class EvaluationQueryService {
         where,
         relationLoadStrategy: 'join',
         select: evaluationAdminApprovalListSelect,
-        orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),

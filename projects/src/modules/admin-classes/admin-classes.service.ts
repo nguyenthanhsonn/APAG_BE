@@ -24,8 +24,10 @@ import {
 } from '../../common/helpers/date-only.helper';
 import { PrismaService } from '../../database/prisma.service';
 import {
+  FormStatus,
   Prisma,
   UserRole as PrismaUserRole,
+  type EvalRank,
 } from '../../generated/prisma/client';
 import {
   UserRole as SharedUserRole,
@@ -33,8 +35,10 @@ import {
 } from '../../common/shared';
 import { PASSWORD_SALT_ROUNDS } from '../auth/constants/password.constants';
 import { StudentAccountMailService } from '../mail/student-account-mail.service';
+import { toClassificationLabel } from '../training-evaluations/helpers/evaluation.mapper';
 import { AddClassStudentDto } from './dto/add-class-student.dto';
 import { GetClassStudentsQueryDto } from './dto/get-class-students-query.dto';
+import { GetFacultyClassEvaluationsQueryDto } from './dto/get-faculty-class-evaluations-query.dto';
 import {
   adminClassStudentSelect,
   type AdminClassStudentRecord,
@@ -210,6 +214,112 @@ export class AdminClassesService {
       page,
       limit,
       total,
+    };
+  }
+
+  // Hàm get danh sách các evaluation của khoa trong 1 class
+  async findFacultyClassEvaluations(
+    userId: string,
+    classId: string,
+    { page, limit, search, status }: GetFacultyClassEvaluationsQueryDto,
+  ) {
+    await this.assertCanManageClass(userId, SharedUserRole.Faculty, classId);
+
+    const term = search?.trim().replace(/[\\%_]/g, '\\$&');
+    const searchFilter = term
+      ? Prisma.sql`AND (code ILIKE ${`%${term}%`} OR name ILIKE ${`%${term}%`})`
+      : Prisma.empty;
+    const statusFilter = status
+      ? Prisma.sql`AND COALESCE(status, 'draft') = ${status}`
+      : Prisma.empty;
+
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        id: string | null;
+        evaluationId: string | null;
+        studentId: string | null;
+        code: string;
+        name: string;
+        status: FormStatus | null;
+        score: number | null;
+        rank: EvalRank | null;
+        submittedAt: Date | null;
+        total: number;
+        totalStudents: number;
+        submittedCount: number;
+        approvedCount: number;
+        canSubmitToTrainingDepartment: boolean;
+      }>
+    >`
+      WITH roster AS (
+        SELECT membership.student_id AS "studentId",
+          latest.id AS "evaluationId",
+          COALESCE(latest.id, membership.student_id) AS id,
+          membership.student_code AS code,
+          student.full_name AS name, latest.status::text AS status,
+          COALESCE(latest.final_score, latest.class_score, latest.student_score) AS score,
+          latest.rank::text AS rank, latest.submitted_at AS "submittedAt"
+        FROM class_students membership
+        JOIN users student ON student.id = membership.student_id
+        LEFT JOIN LATERAL (
+          SELECT form.id, form.status, form.final_score, form.class_score, form.student_score,
+            form.rank, form.submitted_at
+          FROM evaluation_forms form
+          JOIN semesters term ON term.id = form.semester_id
+          WHERE form.class_id = membership.class_id AND form.student_id = membership.student_id
+          ORDER BY term.year DESC, term.semester DESC, form.id DESC
+          LIMIT 1
+        ) latest ON true
+        WHERE membership.class_id = ${classId}::uuid
+          AND membership.deleted_at IS NULL AND student.deleted_at IS NULL
+      ), filtered AS (
+        SELECT * FROM roster WHERE true ${searchFilter} ${statusFilter}
+      ), result_page AS (
+        SELECT * FROM filtered ORDER BY code, id
+        LIMIT ${limit} OFFSET ${(page - 1) * limit}
+      ), summary AS (
+        SELECT count(*)::int AS "totalStudents",
+          count(*) FILTER (WHERE "submittedAt" IS NOT NULL)::int AS "submittedCount",
+          count(*) FILTER (WHERE status IN ('faculty_approved', 'finalized'))::int AS "approvedCount"
+        FROM roster
+      )
+      SELECT result_page.*, summary.*,
+        (SELECT count(*)::int FROM filtered) AS total,
+        EXISTS (
+          SELECT 1 FROM evaluation_forms form
+          JOIN semesters term ON term.id = form.semester_id
+          WHERE form.class_id = ${classId}::uuid AND term.is_active
+            AND form.status = 'class_approved' AND form.class_score IS NOT NULL
+            AND NOT form.is_locked
+        ) AS "canSubmitToTrainingDepartment"
+      FROM summary LEFT JOIN result_page ON true
+      ORDER BY result_page.code, result_page.id
+    `;
+
+    const [summary] = rows;
+    return {
+      items: rows.flatMap((row) =>
+        row.id === null
+          ? []
+          : [{
+              id: row.evaluationId ?? row.studentId ?? row.id,
+              evaluationId: row.evaluationId ?? undefined,
+              studentId: row.studentId ?? undefined,
+              code: row.code,
+              name: row.name,
+              status: row.status ?? 'not_submitted',
+              score: row.score,
+              rank: toClassificationLabel(row.rank),
+              submittedAt: row.submittedAt,
+            }],
+      ),
+      page,
+      limit,
+      total: summary?.total ?? 0,
+      totalStudents: summary?.totalStudents ?? 0,
+      submittedCount: summary?.submittedCount ?? 0,
+      approvedCount: summary?.approvedCount ?? 0,
+      canSubmitToTrainingDepartment: summary?.canSubmitToTrainingDepartment ?? false,
     };
   }
 

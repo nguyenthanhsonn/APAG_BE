@@ -104,6 +104,6 @@ export type Evidence = Prisma.EvidenceModel
 export type Notification = Prisma.NotificationModel
 /**
  * Model OperationReceipt
- *
+ * 
  */
 export type OperationReceipt = Prisma.OperationReceiptModel

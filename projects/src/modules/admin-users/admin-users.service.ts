@@ -131,9 +131,13 @@ export class AdminUsersService {
     );
 
     const username = normalizeUsername(dto.username);
+    const resolvedEmail = dto.email?.trim()
+      ? normalizeEmail(dto.email)
+      : `${username}@apag.edu.vn`;
+
     await assertUserIdentifiersAvailable(this.prisma, {
       username,
-      email: normalizeEmail(dto.email),
+      email: resolvedEmail,
     });
     const passwordHash = await bcrypt.hash(dto.password, PASSWORD_SALT_ROUNDS);
 
@@ -150,7 +154,7 @@ export class AdminUsersService {
         const created = await tx.user.create({
           data: {
             username,
-            email: normalizeEmail(dto.email),
+            email: resolvedEmail,
             fullName: dto.fullName.trim(),
             passwordHash,
             role: toPrismaManagedUserRole(dto.role),
@@ -449,6 +453,9 @@ export class AdminUsersService {
   private async sendCreatedManagedUserEmail(
     dto: CreateAdminUserDto,
   ): Promise<{ sent: boolean; error: string | null }> {
+    if (!dto.email?.trim()) {
+      return { sent: false, error: null };
+    }
     if (!this.accountMailService.isConfigured()) {
       return {
         sent: false,

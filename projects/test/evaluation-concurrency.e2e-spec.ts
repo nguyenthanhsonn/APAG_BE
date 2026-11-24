@@ -31,6 +31,7 @@ import { EvaluationReviewService } from '../src/modules/training-evaluations/app
 import { EvaluationScoreService } from '../src/modules/training-evaluations/application/evaluation-score.service';
 import { EvaluationSubmitService } from '../src/modules/training-evaluations/application/evaluation-submit.service';
 import { AdminTrainingEvaluationsController } from '../src/modules/training-evaluations/presentation/admin-training-evaluations.controller';
+import { TrainingDepartmentEvaluationsController } from '../src/modules/training-evaluations/presentation/training-department-evaluations.controller';
 import { TrainingEvaluationsController } from '../src/modules/training-evaluations/presentation/training-evaluations.controller';
 
 // Test chỉ ghi trong schema sinh ngẫu nhiên; không sửa record nghiệp vụ hiện có.
@@ -88,6 +89,7 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       'operation_receipts',
       'notifications',
       'form_criteria_scores',
+      'form_attachments',
       'evaluation_criteria',
       'semesters',
     ]) {
@@ -205,8 +207,8 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     const module = await Test.createTestingModule({
       controllers: [TrainingEvaluationsController],
       providers: [
-        { provide: EvaluationScoreService, useValue: scores },
         { provide: EvaluationQueryService, useValue: {} },
+        { provide: EvaluationScoreService, useValue: scores },
         { provide: EvaluationSubmitService, useValue: {} },
         { provide: EvaluationReviewService, useValue: {} },
       ],
@@ -311,7 +313,7 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     const service = new EvaluationFinalizeService(concurrentClient as never);
     await expect(
       service.bulkFinalize(
-        { id: randomUUID(), role: UserRole.Admin },
+        { id: randomUUID(), role: UserRole.TrainingDepartment },
         { ids: forms.map((form) => form.id) },
       ),
     ).rejects.toBeInstanceOf(ConflictException);
@@ -351,11 +353,11 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     const service = new EvaluationFinalizeService(concurrentClient as never);
     const results = await Promise.allSettled([
       service.bulkFinalize(
-        { id: randomUUID(), role: UserRole.Admin },
+        { id: randomUUID(), role: UserRole.TrainingDepartment },
         { ids: [form.id] },
       ),
       service.bulkFinalize(
-        { id: randomUUID(), role: UserRole.Admin },
+        { id: randomUUID(), role: UserRole.TrainingDepartment },
         { ids: [form.id] },
       ),
     ]);
@@ -404,7 +406,6 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
         notifications as never,
         queries as never,
         scores,
-        finalize,
       ),
       finalize,
     };
@@ -502,16 +503,16 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
   it('replays single finalization and rejects the same key with a different score or resource', async () => {
     const form = await createForm(FormStatus.faculty_approved);
     const { finalize } = lifecycleServices();
-    const admin = randomUUID();
+    const trainingId = randomUUID();
     const results = await Promise.all([
       finalize.finalize(
-        { id: admin, role: UserRole.Admin },
+        { id: trainingId, role: UserRole.TrainingDepartment },
         form.id,
         { finalScore: 85 },
         'final-1',
       ),
       finalize.finalize(
-        { id: admin, role: UserRole.Admin },
+        { id: trainingId, role: UserRole.TrainingDepartment },
         form.id,
         { finalScore: 85 },
         'final-1',
@@ -521,7 +522,7 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     expect(results[0]).toMatchObject({ finalScore: 85, version: 1 });
     await expect(
       finalize.finalize(
-        { id: admin, role: UserRole.Admin },
+        { id: trainingId, role: UserRole.TrainingDepartment },
         form.id,
         { finalScore: 90 },
         'final-1',
@@ -529,7 +530,7 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     ).rejects.toBeInstanceOf(ConflictException);
     await expect(
       finalize.finalize(
-        { id: admin, role: UserRole.Admin },
+        { id: trainingId, role: UserRole.TrainingDepartment },
         randomUUID(),
         { finalScore: 85 },
         'final-1',
@@ -544,11 +545,19 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       createForm(FormStatus.faculty_approved),
     ]);
     const { finalize } = lifecycleServices();
-    const admin = randomUUID();
+    const trainingId = randomUUID();
     const dto = { ids: forms.map((form) => form.id) };
     const results = await Promise.all([
-      finalize.bulkFinalize({ id: admin, role: UserRole.Admin }, dto, 'bulk-1'),
-      finalize.bulkFinalize({ id: admin, role: UserRole.Admin }, dto, 'bulk-1'),
+      finalize.bulkFinalize(
+        { id: trainingId, role: UserRole.TrainingDepartment },
+        dto,
+        'bulk-1',
+      ),
+      finalize.bulkFinalize(
+        { id: trainingId, role: UserRole.TrainingDepartment },
+        dto,
+        'bulk-1',
+      ),
     ]);
     expect(results[0].approvedCount).toBe(2);
     expect(results[1]).toEqual(results[0]);
@@ -562,16 +571,16 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
   it('does not include newly eligible forms when retrying finalize-by-filter', async () => {
     await createForm(FormStatus.faculty_approved);
     const { finalize } = lifecycleServices();
-    const admin = randomUUID();
+    const trainingId = randomUUID();
     const original = await finalize.finalizeByFilter(
-      { id: admin, role: UserRole.Admin },
+      { id: trainingId, role: UserRole.TrainingDepartment },
       {},
       'filter-1',
     );
     const later = await createForm(FormStatus.faculty_approved);
     expect(
       await finalize.finalizeByFilter(
-        { id: admin, role: UserRole.Admin },
+        { id: trainingId, role: UserRole.TrainingDepartment },
         {},
         'filter-1',
       ),
@@ -584,7 +593,7 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     expect(
       (
         await finalize.finalizeByFilter(
-          { id: admin, role: UserRole.Admin },
+          { id: trainingId, role: UserRole.TrainingDepartment },
           {},
           'filter-new-command',
         )
@@ -690,25 +699,24 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     expect(work).toHaveBeenCalledTimes(3);
   });
 
-  it('accepts Idempotency-Key over HTTP and shares receipts across admin route aliases', async () => {
+  it('accepts Idempotency-Key over HTTP on the training department bulk route', async () => {
     const form = await createForm(FormStatus.faculty_approved);
-    const adminId = randomUUID();
+    const trainingId = randomUUID();
     const module = await Test.createTestingModule({
-      controllers: [AdminTrainingEvaluationsController],
+      controllers: [TrainingDepartmentEvaluationsController],
       providers: [
         {
           provide: EvaluationFinalizeService,
           useValue: lifecycleServices().finalize,
         },
-        { provide: EvaluationQueryService, useValue: {} },
       ],
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({
         canActivate(context: ExecutionContext) {
           context.switchToHttp().getRequest().user = {
-            id: adminId,
-            role: UserRole.Admin,
+            id: trainingId,
+            role: UserRole.TrainingDepartment,
           };
           return true;
         },
@@ -721,11 +729,11 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     await app.init();
     const responses = await Promise.all([
       request(app.getHttpServer())
-        .patch('/api/v1/admin/evaluations/bulk-finalize')
+        .patch('/api/v1/training-department/evaluations/bulk-finalize')
         .set('Idempotency-Key', 'http-1')
         .send({ ids: [form.id] }),
       request(app.getHttpServer())
-        .patch('/api/v1/admin/training-evaluations/bulk-finalize')
+        .patch('/api/v1/training-department/evaluations/bulk-finalize')
         .set('Idempotency-Key', 'http-1')
         .send({ ids: [form.id] }),
     ]);
@@ -733,7 +741,7 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     expect(responses[0].body.data).toEqual(responses[1].body.data);
     expect(responses[0].body.data.approvedCount).toBe(1);
     const conflict = await request(app.getHttpServer())
-      .patch('/api/v1/admin/evaluations/bulk-finalize')
+      .patch('/api/v1/training-department/evaluations/bulk-finalize')
       .set('Idempotency-Key', 'http-1')
       .send({ ids: [randomUUID()] });
     expect(conflict.status).toBe(409);
@@ -1220,12 +1228,12 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       { emitCreated: jest.fn() } as never,
       queries,
       scores,
-      finalize,
     );
     const module = await Test.createTestingModule({
       controllers: [
         TrainingEvaluationsController,
         AdminTrainingEvaluationsController,
+        TrainingDepartmentEvaluationsController,
       ],
       providers: [
         { provide: EvaluationQueryService, useValue: queries },
@@ -1358,13 +1366,13 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       ).version,
     ).toBe(0);
     const wrongFinalize = await request(server)
-      .patch(`/api/v1/admin/evaluations/${form.id}/finalize`)
+      .patch(`/api/v1/training-department/evaluations/${form.id}/finalize`)
       .set('x-test-role', UserRole.Advisor)
       .send({});
     expect(wrongFinalize.status).toBe(403);
     const invalidFinalize = await request(server)
-      .patch(`/api/v1/admin/evaluations/${form.id}/finalize`)
-      .set('x-test-role', UserRole.Admin)
+      .patch(`/api/v1/training-department/evaluations/${form.id}/finalize`)
+      .set('x-test-role', UserRole.TrainingDepartment)
       .send({});
     expect(invalidFinalize.status).toBe(409);
     expect(await prisma.operationReceipt.count()).toBe(0);
@@ -1393,16 +1401,16 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       ),
     ).rejects.toMatchObject({ status: 403 });
     const finalForm = await createForm(FormStatus.faculty_approved);
-    const adminId = randomUUID();
+    const trainingId = randomUUID();
     await finalize.finalize(
-      { id: adminId, role: UserRole.Admin },
+      { id: trainingId, role: UserRole.TrainingDepartment },
       finalForm.id,
       {},
       'role-check-finalize',
     );
     await expect(
       finalize.finalize(
-        { id: adminId, role: UserRole.Student },
+        { id: trainingId, role: UserRole.Admin },
         finalForm.id,
         {},
         'role-check-finalize',
@@ -1500,8 +1508,8 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     const server = (await accessHttpApp()).getHttpServer();
     const payload = { ids: [a.id, b.id], expectedVersions: [a, b] };
     const stale = await request(server)
-      .patch('/api/v1/admin/evaluations/bulk-finalize')
-      .set('x-test-role', UserRole.Admin)
+      .patch('/api/v1/training-department/evaluations/bulk-finalize')
+      .set('x-test-role', UserRole.TrainingDepartment)
       .send(payload);
     expect(stale.status).toBe(409);
     expect(
@@ -1568,7 +1576,8 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       payload: object,
       key: string,
     ) =>
-      request(server)[method](`/api/v1${url}`)
+      request(server)
+        [method](`/api/v1${url}`)
         .set('x-test-role', role)
         .set('x-test-user', id)
         .set('Idempotency-Key', key)
@@ -1608,11 +1617,40 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       `/training-evaluations/${form.id}/confirm-review`,
       UserRole.ClassLeader,
       actors.leader,
-      { scores, expectedVersion: 1 },
+      {
+        scores,
+        expectedVersion: 1,
+        classLeaderReviewData: { classNckh: false, classOlympic: true },
+      },
       'workflow-leader-confirm',
     );
     expect(leader.status).toBe(201);
     expect(leader.body.data.version).toBe(3);
+    const editedLeaderDetail = { classNckh: true, classOlympic: true };
+    const leaderEdit = await call(
+      'post',
+      `/training-evaluations/${form.id}/confirm-review`,
+      UserRole.ClassLeader,
+      actors.leader,
+      {
+        scores: [{ criteriaCode: 'TC1', classScore: 19 }],
+        expectedVersion: 3,
+        classLeaderReviewData: editedLeaderDetail,
+      },
+      'workflow-leader-edit',
+    );
+    expect(leaderEdit.status).toBe(201);
+    expect(leaderEdit.body.data).toMatchObject({
+      version: 5,
+      status: FormStatus.submitted,
+      classScore: 91,
+    });
+    const reopened = await request(server)
+      .get(`/api/v1/training-evaluations/${form.id}`)
+      .set('x-test-role', UserRole.ClassLeader)
+      .set('x-test-user', actors.leader);
+    expect(reopened.status).toBe(200);
+    expect(reopened.body.data.classLeaderReviewData).toEqual(editedLeaderDetail);
     const leaderSend = await call(
       'post',
       `/training-evaluations/classes/${cls.id}/submit-to-advisor`,
@@ -1623,22 +1661,21 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     );
     expect(leaderSend.status).toBe(201);
     expect(
-      (
-        await prisma.evaluationForm.findUniqueOrThrow({
-          where: { id: form.id },
-        })
-      ).status,
-    ).toBe(FormStatus.class_leader_approved);
+      await prisma.evaluationForm.findUniqueOrThrow({ where: { id: form.id } }),
+    ).toMatchObject({ status: FormStatus.class_leader_approved, classScore: 91 });
     const advisor = await call(
       'post',
       `/training-evaluations/${form.id}/confirm-review`,
       UserRole.Advisor,
       actors.advisor,
-      { scores, expectedVersion: 4 },
+      { scores: [{ criteriaCode: 'TC5', classScore: 7 }], expectedVersion: 6 },
       'workflow-advisor-confirm',
     );
     expect(advisor.status).toBe(201);
-    expect(advisor.body.data.version).toBe(6);
+    expect(advisor.body.data).toMatchObject({ version: 8, classScore: 90 });
+    expect(
+      await prisma.evaluationForm.findUniqueOrThrow({ where: { id: form.id } }),
+    ).toMatchObject({ classLeaderReviewData: editedLeaderDetail });
     const advisorSend = await call(
       'post',
       `/training-evaluations/classes/${cls.id}/submit-to-faculty`,
@@ -1648,6 +1685,9 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       'workflow-advisor-send',
     );
     expect(advisorSend.status).toBe(201);
+    expect(
+      await prisma.evaluationForm.findUniqueOrThrow({ where: { id: form.id } }),
+    ).toMatchObject({ status: FormStatus.class_approved, classScore: 90 });
     const facultySend = await call(
       'post',
       `/training-evaluations/faculties/${faculty.id}/submit-to-training-department`,
@@ -1657,7 +1697,46 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       'workflow-faculty-send',
     );
     expect(facultySend.status).toBe(201);
-    const finalPayload = { expectedVersion: 8 };
+    const finalPayload = { expectedVersion: 10 };
+    const legacyAdminApproval = await call(
+      'post',
+      `/training-evaluations/${form.id}/review`,
+      UserRole.Admin,
+      randomUUID(),
+      { ...finalPayload, action: 'approve' },
+      'workflow-legacy-admin-final',
+    );
+    expect(legacyAdminApproval.status).toBe(404);
+    const finalizeRoutes = [
+      ['patch', `${form.id}/finalize`, finalPayload],
+      ['patch', 'bulk-finalize', { ids: [form.id] }],
+      ['post', 'finalize-by-filter', { semesterId }],
+    ] as const;
+    for (const [method, route, payload] of finalizeRoutes) {
+      for (const prefix of [
+        '/admin/evaluations',
+        '/admin/training-evaluations',
+      ]) {
+        const removed = await call(
+          method,
+          `${prefix}/${route}`,
+          UserRole.TrainingDepartment,
+          actors.training,
+          payload,
+          'removed-finalize-route',
+        );
+        expect(removed.status).toBe(404);
+      }
+      const forbidden = await call(
+        method,
+        `/training-department/evaluations/${route}`,
+        UserRole.Admin,
+        randomUUID(),
+        payload,
+        'forbidden-finalize-route',
+      );
+      expect(forbidden.status).toBe(403);
+    }
     const final = await call(
       'patch',
       `/training-department/evaluations/${form.id}/finalize`,
@@ -1669,12 +1748,12 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     expect(final.status).toBe(200);
     expect(final.body.data).toMatchObject({
       status: FormStatus.finalized,
-      version: 9,
+      version: 11,
       finalScore: 90,
     });
     const duplicate = await call(
       'patch',
-      `/admin/evaluations/${form.id}/finalize`,
+      `/training-department/evaluations/${form.id}/finalize`,
       UserRole.TrainingDepartment,
       actors.training,
       finalPayload,
@@ -1683,6 +1762,6 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
     expect(duplicate.body.data).toEqual(final.body.data);
     expect(
       await prisma.evaluationForm.findUniqueOrThrow({ where: { id: form.id } }),
-    ).toMatchObject({ version: 9, status: FormStatus.finalized });
+    ).toMatchObject({ version: 11, status: FormStatus.finalized });
   });
 });

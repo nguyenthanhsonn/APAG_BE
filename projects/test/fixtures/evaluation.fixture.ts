@@ -48,6 +48,8 @@ export function evaluationFixture(
       facultyDeadline: null,
     },
     student: { phone: null },
+    criteriaScores: [],
+    classLeaderReviewData: null,
     evidences: [],
     attachments: [],
     ...overrides,

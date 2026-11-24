@@ -59,7 +59,7 @@ describe('EvaluationQueryService', () => {
     expect(result).not.toHaveProperty('stats');
     expect(result.items[0]).toMatchObject({ classScore: 73, rank: 'good' });
     expect(result.items[0]).not.toHaveProperty('stats');
-    expect(result.items[0]).not.toHaveProperty('studentScore');
+    expect(result.items[0]).toHaveProperty('studentScore');
   });
 });
 
@@ -85,6 +85,49 @@ describe('evaluation read access', () => {
     };
     return { prisma, service: new EvaluationQueryService(prisma as never) };
   }
+
+  it('lists and reads a class leader’s own forms without a reviewer assignment', async () => {
+    const { service, prisma } = setup();
+    const leader = { id: 'leader', role: UserRole.ClassLeader };
+    const form = evaluationFixture({ studentId: leader.id });
+    prisma.evaluationForm.findMany.mockResolvedValueOnce([form]);
+    prisma.evaluationForm.findFirst.mockResolvedValueOnce(form);
+
+    await expect(service.findMine(leader)).resolves.toMatchObject([
+      { id: form.id, studentId: leader.id },
+    ]);
+    expect(prisma.evaluationForm.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { studentId: leader.id } }),
+    );
+    await expect(
+      service.getSummary(leader.id, leader.role, form.id),
+    ).resolves.toBeDefined();
+    expect(prisma.classLeaderAssignment.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('returns saved class scores separately from student scores for the assigned advisor', async () => {
+    const { service, prisma } = setup();
+    prisma.advisorAssignment.findUnique.mockResolvedValueOnce({ id: 'assignment' });
+    prisma.evaluationForm.findFirst.mockResolvedValueOnce(
+      evaluationFixture({
+        studentScore: 66,
+        classScore: 76,
+        criteriaScores: [
+          { criteria: { code: 'TC1' }, classScore: 16 },
+          { criteria: { code: 'TC5' }, classScore: 0 },
+        ],
+      }),
+    );
+
+    await expect(service.findOne('advisor', UserRole.Advisor, 'form')).resolves.toMatchObject({
+      totalScore: 66,
+      classScore: 76,
+      classCriteriaScores: [
+        { criteriaCode: 'TC1', classScore: 16 },
+        { criteriaCode: 'TC5', classScore: 0 },
+      ],
+    });
+  });
 
   it('scopes student reads by owner and requires assignment for reviewer reads', async () => {
     const { service, prisma } = setup();

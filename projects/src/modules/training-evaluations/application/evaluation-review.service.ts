@@ -41,7 +41,6 @@ import {
 } from '../selects/evaluation-form.select';
 import type { EvaluationScoreSummaryResponse } from '../types/evaluation-form.types';
 import { writeEvaluationAndRead } from './evaluation-concurrency';
-import { EvaluationFinalizeService } from './evaluation-finalize.service';
 import { EvaluationQueryService } from './evaluation-query.service';
 import { EvaluationScoreService } from './evaluation-score.service';
 
@@ -53,7 +52,6 @@ export class EvaluationReviewService {
     private readonly notificationsService: NotificationsService,
     private readonly queries: EvaluationQueryService,
     private readonly scores: EvaluationScoreService,
-    private readonly finalization: EvaluationFinalizeService,
   ) {}
 
   /**
@@ -88,6 +86,15 @@ export class EvaluationReviewService {
     dto: ConfirmReviewDto,
     database: CommandDatabase,
   ): Promise<EvaluationScoreSummaryResponse> {
+    const classLeaderReviewData = dto.classLeaderReviewData;
+    if (classLeaderReviewData != null) {
+      if (reviewer.role !== UserRole.ClassLeader) {
+        throw new ForbiddenException('Chỉ lớp trưởng được lưu lựa chọn chấm chi tiết');
+      }
+      if (JSON.stringify(classLeaderReviewData).length > 4096) {
+        throw new BadRequestException('Dữ liệu chấm chi tiết vượt quá giới hạn');
+      }
+    }
     // Chấm kèm xác nhận dùng chung transaction: conflict không để lại điểm chưa xác nhận.
     return database.$transaction(async (tx) => {
       // Điểm thay đổi làm mất dấu xác nhận cũ; chấm xong mới ghi nhận xác nhận mới.
@@ -145,6 +152,9 @@ export class EvaluationReviewService {
           data: {
             classLeaderReviewedBy: reviewer.id,
             classLeaderReviewedAt: new Date(),
+            ...(classLeaderReviewData != null && {
+              classLeaderReviewData: classLeaderReviewData as Prisma.InputJsonObject,
+            }),
           },
           select: evaluationScoreSummarySelect,
         });
@@ -160,6 +170,38 @@ export class EvaluationReviewService {
             rank: calculateClassification(confirmedClassScore),
             classReviewedBy: reviewer.id,
             classReviewedAt: new Date(),
+          },
+          select: evaluationScoreSummarySelect,
+        });
+
+        return mapToScoreSummaryResponse(confirmed);
+      }
+
+      if (reviewer.role === UserRole.Faculty) {
+        assertReviewScoresEditable(reviewer.role, form.status);
+
+        const confirmed = await writeEvaluationAndRead(tx, form, {
+          data: {
+            rank: calculateClassification(confirmedClassScore),
+          },
+          select: evaluationScoreSummarySelect,
+        });
+
+        return mapToScoreSummaryResponse(confirmed);
+      }
+
+      if (
+        reviewer.role === UserRole.TrainingDepartment ||
+        reviewer.role === UserRole.Admin
+      ) {
+        assertReviewScoresEditable(reviewer.role, form.status);
+
+        const confirmed = await writeEvaluationAndRead(tx, form, {
+          data: {
+            finalScore: confirmedClassScore,
+            rank: calculateClassification(confirmedClassScore),
+            adminFinalizedBy: reviewer.id,
+            adminFinalizedAt: new Date(),
           },
           select: evaluationScoreSummarySelect,
         });
@@ -184,21 +226,14 @@ export class EvaluationReviewService {
     dto: ReviewTrainingEvaluationDto,
     key?: string,
   ): Promise<EvaluationScoreSummaryResponse> {
-    EvaluationAccessPolicy.assertRole('reviewDecision', reviewer);
+    EvaluationAccessPolicy.assertRole('review', reviewer);
     return idempotentOperation(
       this.prisma,
       {
         actorId: reviewer.id,
         action: 'review',
-        authorizeReplay: async (database) => {
-          if (!EvaluationAccessPolicy.canFinalize(reviewer))
-            await this.queries.assertFormAccess(
-              reviewer,
-              id,
-              'review',
-              database,
-            );
-        },
+        authorizeReplay: (database) =>
+          this.queries.assertFormAccess(reviewer, id, 'review', database),
         key,
         input: { id, dto, role: reviewer.role },
       },
@@ -222,7 +257,6 @@ export class EvaluationReviewService {
         studentId: true,
         status: true,
         classId: true,
-        classScore: true,
         semester: { select: evaluationDeadlineSelect },
       },
     });
@@ -231,14 +265,12 @@ export class EvaluationReviewService {
       throw new NotFoundException('Không tìm thấy phiếu đánh giá');
     }
 
-    if (!EvaluationAccessPolicy.canFinalize(reviewer)) {
-      await this.queries.assertClassAccess(
-        reviewer,
-        evaluation.classId,
-        'review',
-        database,
-      );
-    }
+    await this.queries.assertClassAccess(
+      reviewer,
+      evaluation.classId,
+      'review',
+      database,
+    );
     assertExpectedEvaluationVersion(evaluation, dto.expectedVersion);
     const stage = resolveReviewStage(reviewer.role, evaluation.status);
 
@@ -258,6 +290,7 @@ export class EvaluationReviewService {
               finalScore: null,
               classLeaderReviewedBy: null,
               classLeaderReviewedAt: null,
+              classLeaderReviewData: Prisma.DbNull,
               classReviewedBy: null,
               classReviewedAt: null,
               adminFinalizedBy: null,
@@ -297,15 +330,6 @@ export class EvaluationReviewService {
         );
 
       return mapToScoreSummaryResponse(rejected);
-    }
-
-    // Route review cũ của admin vẫn chốt từ classScore; finalize service sở hữu toàn bộ ghi điểm cuối.
-    if (reviewer.role === UserRole.Admin) {
-      return this.finalization.finalizeReviewedForm(
-        reviewer,
-        evaluation,
-        database,
-      );
     }
 
     const data: Prisma.EvaluationFormUncheckedUpdateInput = {

@@ -28,7 +28,6 @@ import { ConfirmReviewDto } from '../dto/confirm-review.dto';
 import { CreateTrainingEvaluationDto } from '../dto/create-training-evaluation.dto';
 import { ReturnEvaluationToStudentDto } from '../dto/return-evaluation-to-student.dto';
 import { ReviewScoresDto } from '../dto/review-scores.dto';
-import { ReviewTrainingEvaluationDto } from '../dto/review-training-evaluation.dto';
 import { SubmitClassToAdvisorDto } from '../dto/submit-class-to-advisor.dto';
 import { SubmitClassToFacultyDto } from '../dto/submit-class-to-faculty.dto';
 import { SubmitFacultyToTrainingDepartmentDto } from '../dto/submit-faculty-to-training-department.dto';
@@ -261,25 +260,6 @@ export class TrainingEvaluationsController {
     @Headers('idempotency-key') key?: string,
   ) {
     return this.reviews.confirmReview(reviewer, id, dto, key);
-  }
-
-  @ApiOperation({
-    summary: 'Tạo/Xử lý dữ liệu',
-    description:
-      'Endpoint POST :id/review trong nhóm Training Evaluations; xem schema DTO/query và response mẫu trực tiếp trong Swagger.',
-  })
-  @ApiResponse({ status: 201, description: 'Thao tác thành công.' })
-  @ApiResponse({ status: 400, description: 'Dữ liệu gửi lên không hợp lệ.' })
-  @Post(':id/review')
-  @Roles(UserRole.Admin)
-  @ApiIdempotency()
-  review(
-    @CurrentUser() reviewer: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: ReviewTrainingEvaluationDto,
-    @Headers('idempotency-key') key?: string,
-  ) {
-    return this.reviews.review(reviewer, id, dto, key);
   }
 
   @ApiOperation({

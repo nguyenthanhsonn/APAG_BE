@@ -195,7 +195,7 @@ Lưu ý:
 
 ## 9. Quản lý Phiếu đánh giá rèn luyện
 
-Trang Đánh giá dùng để admin theo dõi và duyệt kết quả cuối.
+Trang Đánh giá dùng để admin theo dõi phiếu. Phòng Đào tạo thực hiện duyệt cuối.
 
 ### 9.1. Lọc và tìm phiếu
 
@@ -218,7 +218,7 @@ Các trạng thái thường gặp:
 - `finalized`: kết quả đã được duyệt cuối.
 - `rejected`: phiếu bị trả về.
 
-### 9.2. Duyệt từng phiếu
+### 9.2. Phòng Đào tạo duyệt từng phiếu
 
 1. Mở danh sách phiếu.
 2. Lọc đúng học kỳ và lớp hoặc khoa.
@@ -229,7 +229,7 @@ Các trạng thái thường gặp:
 
 Điểm cuối hợp lệ nằm trong khoảng 0 đến 100.
 
-### 9.3. Duyệt hàng loạt
+### 9.3. Phòng Đào tạo duyệt hàng loạt
 
 Khi nhiều phiếu đã sẵn sàng:
 

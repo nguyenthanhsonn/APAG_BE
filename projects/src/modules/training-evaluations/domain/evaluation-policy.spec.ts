@@ -55,7 +55,7 @@ describe('evaluation policies', () => {
     ).toBe(false);
     expect(
       EvaluationAccessPolicy.canFinalize({ id: 'admin', role: UserRole.Admin }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it.each([
@@ -69,7 +69,6 @@ describe('evaluation policies', () => {
       FormStatus.class_leader_approved,
       FormStatus.class_approved,
     ],
-    [UserRole.Admin, FormStatus.faculty_approved, FormStatus.finalized],
   ])('resolves the existing %s approval step', (role, current, next) => {
     expect(resolveReviewStage(role, current).nextApprovedStatus).toBe(next);
     expect(() => resolveReviewStage(role, FormStatus.draft)).toThrow(

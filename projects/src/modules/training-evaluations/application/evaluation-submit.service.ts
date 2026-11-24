@@ -98,7 +98,7 @@ export class EvaluationSubmitService {
         select: { id: true },
       }),
       this.prisma.classStudent.findFirst({
-        where: { studentId: userId },
+        where: { studentId: userId, deletedAt: null },
         orderBy: { enrolledAt: 'desc' },
         select: { classId: true },
       }),
@@ -226,6 +226,7 @@ export class EvaluationSubmitService {
           finalScore: null,
           classLeaderReviewedBy: null,
           classLeaderReviewedAt: null,
+          classLeaderReviewData: Prisma.DbNull,
           classReviewedBy: null,
           classReviewedAt: null,
           adminFinalizedBy: null,
