@@ -2,6 +2,8 @@
 
 Cập nhật 19/10/2026. Tài liệu ghi cấu hình trong repository và những quan sát local đã thực hiện. Chưa có thông tin xác minh về máy chủ production, domain/API public, reverse proxy/TLS, CI/CD, replica hoặc backup thực tế.
 
+Xem [triển khai APAG với Nginx trên Render](render-nginx.md) và cách chạy thử chia request qua hai backend.
+
 ## 1. Các cách chạy hiện có
 
 | Cách chạy | Entry point | Đặc điểm |

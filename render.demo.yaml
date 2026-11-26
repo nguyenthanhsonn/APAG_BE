@@ -1,0 +1,29 @@
+services:
+  - type: pserv
+    name: apag-lb-demo-api
+    runtime: node
+    region: singapore
+    plan: starter
+    numInstances: 2
+    rootDir: projects/infra/nginx
+    buildCommand: node --check demo-api.cjs
+    startCommand: node demo-api.cjs
+    envVars:
+      - key: PORT
+        value: '5050'
+      - key: SKIP_INSTALL_DEPS
+        value: 'true'
+
+  - type: web
+    name: apag-lb-demo-nginx
+    runtime: docker
+    region: singapore
+    plan: starter
+    rootDir: projects/infra/nginx
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APAG_UPSTREAM_HOST
+        fromService:
+          name: apag-lb-demo-api
+          type: pserv
+          envVarKey: RENDER_DISCOVERY_SERVICE
