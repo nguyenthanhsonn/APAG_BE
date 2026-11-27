@@ -2,6 +2,26 @@
 
 Cập nhật 19/10/2026. Tài liệu ghi cấu hình trong repository và những quan sát local đã thực hiện. Chưa có thông tin xác minh về máy chủ production, domain/API public, reverse proxy/TLS, CI/CD, replica hoặc backup thực tế.
 
+## Kết nối PostgreSQL đã tạo trên Render
+
+Trong Render Dashboard, mở database `apag` và sao chép **Internal Database URL** từ mục **Connections**. Điền URL vào `DATABASE_URL` khi tạo Blueprint từ [render.yaml](../render.yaml), hoặc vào **Environment** của Web Service `apag-backend` nếu service đã tạo. Backend và database cần cùng workspace và region. Blueprint đặt backend ở Singapore. Nếu database ở vùng khác, đặt backend mới cùng vùng với database. Render chạy `pnpm db:deploy` trước khi khởi động NestJS. Nếu đã cấu hình `DIRECT_URL` từ trước, kiểm tra biến đó cũng trỏ đến database đích vì Prisma ưu tiên nó khi chạy migration. [Kết nối Render Postgres](https://render.com/docs/postgresql-creating-connecting)
+
+### Đưa schema lên Render từ máy local
+
+Nếu cần tạo bảng trước khi deploy Web Service, sao chép **External Database URL** ở mục **Connections** và dán vào `RENDER_DATABASE_URL` trong `projects/.env`. Sau khi cài dependencies, chạy các lệnh sau từ `projects`.
+
+```bash
+cd /Users/nguyenson/APAG_BE/projects
+pnpm db:render:status
+# Xem tên database và các migration đang chờ rồi áp dụng.
+pnpm db:render:deploy
+pnpm db:render:status
+```
+
+Hai lệnh `db:render:*` dùng URL Render cho riêng tiến trình Prisma. Database mới thường báo có migration chưa áp dụng trước lệnh `deploy`. Nếu database đã có bảng nhưng thiếu lịch sử `_prisma_migrations`, kiểm tra baseline trước. Kết nối từ máy local cần được cho phép trong mục **Networking** của database. [Prisma migrate deploy](https://docs.prisma.io/docs/cli/migrate/deploy) · [Baselining](https://www.prisma.io/docs/orm/prisma-migrate/workflows/baselining)
+
+Migration tạo và cập nhật schema theo `projects/prisma/schema/migrations`. Để chuyển cả dữ liệu đang có ở local, dùng `pg_dump` và `pg_restore` vào database đích trống trước lần deploy đầu tiên. Giữ bảng `_prisma_migrations` trong bản sao nếu nguồn đã dùng Prisma Migrate. [Hướng dẫn backup và restore của Render](https://render.com/docs/postgresql-backups#restoring-from-a-pg_dump-export)
+
 ## 1. Các cách chạy hiện có
 
 | Cách chạy | Entry point | Đặc điểm |

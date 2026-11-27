@@ -72,7 +72,6 @@ describe('application authorization boundaries', () => {
       const student = reviewerFixture(UserRole.Student),
         advisor = reviewerFixture(UserRole.Advisor);
       const admin = reviewerFixture(UserRole.Admin),
-        faculty = reviewerFixture(UserRole.Faculty),
         leader = reviewerFixture(UserRole.ClassLeader);
       const calls: Record<(typeof cases)[number], () => Promise<unknown>> = {
         create: () =>

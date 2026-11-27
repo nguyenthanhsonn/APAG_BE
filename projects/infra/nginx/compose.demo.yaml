@@ -1,0 +1,25 @@
+x-demo-api: &demo-api
+  image: node:22-alpine
+  command: [node, /demo-api.cjs]
+  volumes:
+    - ./demo-api.cjs:/demo-api.cjs:ro
+  networks:
+    default:
+      aliases: [demo-api]
+
+services:
+  nginx:
+    build: .
+    environment:
+      APAG_UPSTREAM_HOST: demo-api
+    ports:
+      - '127.0.0.1:8080:10000'
+    depends_on:
+      - api-a
+      - api-b
+  api-a:
+    <<: *demo-api
+    hostname: api-a
+  api-b:
+    <<: *demo-api
+    hostname: api-b
