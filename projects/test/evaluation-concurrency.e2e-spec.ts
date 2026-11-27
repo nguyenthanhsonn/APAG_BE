@@ -1576,8 +1576,7 @@ postgres('optimistic evaluation concurrency on PostgreSQL', () => {
       payload: object,
       key: string,
     ) =>
-      request(server)
-        [method](`/api/v1${url}`)
+      request(server)[method](`/api/v1${url}`)
         .set('x-test-role', role)
         .set('x-test-user', id)
         .set('Idempotency-Key', key)

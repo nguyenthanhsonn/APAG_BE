@@ -22,6 +22,8 @@
     "db:migrate": "prisma --config prisma.config.ts migrate dev",
     "db:deploy": "prisma --config prisma.config.ts migrate deploy",
     "db:status": "prisma --config prisma.config.ts migrate status",
+    "db:render:status": "node scripts/render-db.cjs status",
+    "db:render:deploy": "node scripts/render-db.cjs deploy",
     "db:studio": "prisma --config prisma.config.ts studio",
     "db:reset": "prisma --config prisma.config.ts migrate reset",
     "db:seed": "ts-node -T --project tsconfig.json prisma/seeds/seed.ts",

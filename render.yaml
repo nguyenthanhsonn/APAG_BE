@@ -1,11 +1,14 @@
 services:
-  - type: pserv
-    name: apag-api
+  - type: web
+    name: apag-backend
     runtime: docker
     region: singapore
     plan: starter
     numInstances: 1
+    branch: main
+    autoDeployTrigger: checksPass
     rootDir: projects
+    healthCheckPath: /api/v1/health
     preDeployCommand: pnpm db:deploy
     dockerCommand: node dist/main.js
     envVars:
@@ -15,6 +18,7 @@ services:
         value: '5050'
       - key: BACKEND_HOST
         value: '0.0.0.0'
+      # Use the existing Render Postgres Internal Database URL in the same region.
       - key: DATABASE_URL
         sync: false
       - key: FRONTEND_URL
@@ -27,17 +31,3 @@ services:
         value: 'false'
       - key: SWAGGER_ENABLED
         value: 'false'
-
-  - type: web
-    name: apag-nginx
-    runtime: docker
-    region: singapore
-    plan: starter
-    rootDir: projects/infra/nginx
-    healthCheckPath: /api/v1/health
-    envVars:
-      - key: APAG_UPSTREAM_HOST
-        fromService:
-          name: apag-api
-          type: pserv
-          property: host
